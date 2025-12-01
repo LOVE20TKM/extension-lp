@@ -7,6 +7,7 @@ import {
 } from "@extension/src/LOVE20ExtensionBaseTokenJoinAuto.sol";
 import {TokenJoin} from "@extension/src/base/TokenJoin.sol";
 import {LOVE20ExtensionBase} from "@extension/src/LOVE20ExtensionBase.sol";
+import {IAutoScore} from "@extension/src/interface/base/IAutoScore.sol";
 import {
     ILOVE20ExtensionTokenJoinAuto
 } from "@extension/src/interface/ILOVE20ExtensionTokenJoinAuto.sol";
@@ -167,10 +168,7 @@ contract LOVE20ExtensionLp is
     )
         public
         view
-        override(
-            ILOVE20ExtensionTokenJoinAuto,
-            LOVE20ExtensionBaseTokenJoinAuto
-        )
+        override(IAutoScore, LOVE20ExtensionBaseTokenJoinAuto)
         returns (uint256 total, uint256 score)
     {
         uint256[] memory scoresCalculated;
@@ -188,10 +186,7 @@ contract LOVE20ExtensionLp is
     function calculateScores()
         public
         view
-        override(
-            ILOVE20ExtensionTokenJoinAuto,
-            LOVE20ExtensionBaseTokenJoinAuto
-        )
+        override(IAutoScore, LOVE20ExtensionBaseTokenJoinAuto)
         returns (uint256 totalCalculated, uint256[] memory scoresCalculated)
     {
         uint256 totalTokenSupply = _joinToken.totalSupply();
