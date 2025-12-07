@@ -725,7 +725,8 @@ contract LOVE20ExtensionLpTest is Test {
         extension.join(100e18, new string[](0));
 
         // Verify join succeeded
-        (uint256 amount, , ) = extension.joinInfo(minUser);
+        (uint256 joinedRound, uint256 amount, , ) = extension.joinInfo(minUser);
+        assertEq(joinedRound, join.currentRound());
         assertEq(amount, 100e18);
     }
 
@@ -744,7 +745,7 @@ contract LOVE20ExtensionLpTest is Test {
         extension.join(100e18, new string[](0));
 
         // Verify join succeeded
-        (uint256 amount, , ) = extension.joinInfo(richUser);
+        (, uint256 amount, , ) = extension.joinInfo(richUser);
         assertEq(amount, 100e18);
     }
 
