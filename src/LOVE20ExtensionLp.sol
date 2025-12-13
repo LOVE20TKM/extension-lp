@@ -22,15 +22,11 @@ import {
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
-import {
-    EnumerableSet
-} from "@extension/lib/core/lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 
 contract LOVE20ExtensionLp is
     LOVE20ExtensionBaseTokenJoinAuto,
     ILOVE20ExtensionLp
 {
-    using EnumerableSet for EnumerableSet.AddressSet;
     // ============================================
     // STATE VARIABLES
     // ============================================
@@ -163,6 +159,57 @@ contract LOVE20ExtensionLp is
     // ILOVE20ExtensionAutoScore IMPLEMENTATION
     // ============================================
 
+    function _scoreForAccount(
+        address account,
+        uint256 totalTokenSupply,
+        uint256 totalGovVotes
+    ) internal view returns (uint256) {
+        uint256 joinedAmount = _joinInfo[account].amount;
+        uint256 govVotes = _stake.validGovVotes(tokenAddress, account);
+
+        uint256 score = (joinedAmount * lpRatioPrecision) / totalTokenSupply;
+        if (govRatioMultiplier > 0) {
+            uint256 govVotesRatio = (govVotes *
+                lpRatioPrecision *
+                govRatioMultiplier) / totalGovVotes;
+            score = score > govVotesRatio ? govVotesRatio : score;
+        }
+
+        return score;
+    }
+
+    function _calculateScoresForAccounts(
+        address[] memory accounts
+    )
+        internal
+        view
+        returns (uint256 totalCalculated, uint256[] memory scoresCalculated)
+    {
+        uint256 totalTokenSupply = _joinToken.totalSupply();
+        uint256 totalGovVotes = _stake.govVotesNum(tokenAddress);
+
+        uint256 accountsLength = accounts.length;
+        scoresCalculated = new uint256[](accountsLength);
+
+        if (
+            accountsLength == 0 || totalTokenSupply == 0 || totalGovVotes == 0
+        ) {
+            return (0, scoresCalculated);
+        }
+
+        for (uint256 i = 0; i < accountsLength; i++) {
+            address account = accounts[i];
+            uint256 score = _scoreForAccount(
+                account,
+                totalTokenSupply,
+                totalGovVotes
+            );
+
+            scoresCalculated[i] = score;
+            totalCalculated += score;
+        }
+    }
+
     function calculateScore(
         address account
     )
@@ -171,13 +218,23 @@ contract LOVE20ExtensionLp is
         override(IAutoScore, LOVE20ExtensionBaseTokenJoinAuto)
         returns (uint256 total, uint256 score)
     {
-        uint256[] memory scoresCalculated;
-        (total, scoresCalculated) = calculateScores();
+        address[] memory accounts = _center.accounts(tokenAddress, actionId);
+        uint256 totalTokenSupply = _joinToken.totalSupply();
+        uint256 totalGovVotes = _stake.govVotesNum(tokenAddress);
+
+        if (
+            accounts.length == 0 || totalTokenSupply == 0 || totalGovVotes == 0
+        ) {
+            return (0, 0);
+        }
+
         score = 0;
-        for (uint256 i = 0; i < scoresCalculated.length; i++) {
-            if (_accounts.at(i) == account) {
-                score = scoresCalculated[i];
-                break;
+        for (uint256 i = 0; i < accounts.length; i++) {
+            address a = accounts[i];
+            uint256 s = _scoreForAccount(a, totalTokenSupply, totalGovVotes);
+            total += s;
+            if (a == account) {
+                score = s;
             }
         }
         return (total, score);
@@ -189,33 +246,7 @@ contract LOVE20ExtensionLp is
         override(IAutoScore, LOVE20ExtensionBaseTokenJoinAuto)
         returns (uint256 totalCalculated, uint256[] memory scoresCalculated)
     {
-        uint256 totalTokenSupply = _joinToken.totalSupply();
-        uint256 totalGovVotes = _stake.govVotesNum(tokenAddress);
-
-        if (totalTokenSupply == 0 || totalGovVotes == 0) {
-            return (0, new uint256[](0));
-        }
-
-        uint256 accountsLength = _accounts.length();
-        scoresCalculated = new uint256[](accountsLength);
-        for (uint256 i = 0; i < accountsLength; i++) {
-            address account = _accounts.at(i);
-            uint256 joinedAmount = _joinInfo[account].amount;
-            uint256 govVotes = _stake.validGovVotes(tokenAddress, account);
-
-            uint256 score = (joinedAmount * lpRatioPrecision) /
-                totalTokenSupply;
-            if (govRatioMultiplier > 0) {
-                uint256 govVotesRatio = (govVotes *
-                    lpRatioPrecision *
-                    govRatioMultiplier) / totalGovVotes;
-
-                score = score > govVotesRatio ? govVotesRatio : score;
-            }
-
-            scoresCalculated[i] = score;
-            totalCalculated += score;
-        }
-        return (totalCalculated, scoresCalculated);
+        address[] memory accounts = _center.accounts(tokenAddress, actionId);
+        return _calculateScoresForAccounts(accounts);
     }
 }
