@@ -3,30 +3,30 @@ pragma solidity =0.8.17;
 
 import {ILOVE20ExtensionLp} from "./interface/ILOVE20ExtensionLp.sol";
 import {
-    LOVE20ExtensionBaseTokenJoinAuto
-} from "@extension/src/LOVE20ExtensionBaseTokenJoinAuto.sol";
+    LOVE20ExtensionBaseTokenJoin
+} from "@extension/src/LOVE20ExtensionBaseTokenJoin.sol";
 import {TokenJoin} from "@extension/src/base/TokenJoin.sol";
-import {LOVE20ExtensionBase} from "@extension/src/LOVE20ExtensionBase.sol";
-import {IAutoScore} from "@extension/src/interface/base/IAutoScore.sol";
+import {ExtensionReward} from "@extension/src/base/ExtensionReward.sol";
 import {
-    ILOVE20ExtensionTokenJoinAuto
-} from "@extension/src/interface/ILOVE20ExtensionTokenJoinAuto.sol";
-import {ILOVE20Extension} from "@extension/src/interface/ILOVE20Extension.sol";
+    IExtensionReward
+} from "@extension/src/interface/base/IExtensionReward.sol";
 import {ITokenJoin} from "@extension/src/interface/base/ITokenJoin.sol";
 import {
     ILOVE20ExtensionCenter
 } from "@extension/src/interface/ILOVE20ExtensionCenter.sol";
 import {
-    IERC20
-} from "@extension/lib/core/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
+import {RoundHistoryUint256} from "@extension/src/lib/RoundHistoryUint256.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {
+    SafeERC20
+} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract LOVE20ExtensionLp is
-    LOVE20ExtensionBaseTokenJoinAuto,
-    ILOVE20ExtensionLp
-{
+using RoundHistoryUint256 for RoundHistoryUint256.History;
+using SafeERC20 for IERC20;
+
+contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
     // ============================================
     // STATE VARIABLES
     // ============================================
@@ -34,6 +34,9 @@ contract LOVE20ExtensionLp is
     uint256 public immutable govRatioMultiplier;
     uint256 public immutable lpRatioPrecision;
     uint256 public immutable minGovVotes;
+
+    /// @dev round => account => burnReward (recorded at claim time)
+    mapping(uint256 => mapping(address => uint256)) internal _burnReward;
 
     constructor(
         address factory_,
@@ -44,7 +47,7 @@ contract LOVE20ExtensionLp is
         uint256 minGovVotes_,
         uint256 lpRatioPrecision_
     )
-        LOVE20ExtensionBaseTokenJoinAuto(
+        LOVE20ExtensionBaseTokenJoin(
             factory_,
             tokenAddress_,
             joinTokenAddress_,
@@ -60,11 +63,18 @@ contract LOVE20ExtensionLp is
     function join(
         uint256 amount,
         string[] memory verificationInfos
-    ) public virtual override(ITokenJoin, LOVE20ExtensionBaseTokenJoinAuto) {
-        // Check minimum governance votes requirement
-        uint256 userGovVotes = _stake.validGovVotes(tokenAddress, msg.sender);
-        if (userGovVotes < minGovVotes) {
-            revert ILOVE20ExtensionLp.InsufficientGovVotes();
+    ) public virtual override(ITokenJoin, TokenJoin) {
+        bool isFirstJoin = _joinedBlockByAccount[msg.sender] == 0;
+
+        // Check minimum governance votes requirement only on first join
+        if (isFirstJoin) {
+            uint256 userGovVotes = _stake.validGovVotes(
+                tokenAddress,
+                msg.sender
+            );
+            if (userGovVotes < minGovVotes) {
+                revert ILOVE20ExtensionLp.InsufficientGovVotes();
+            }
         }
 
         // Validate LP ratio before joining
@@ -145,108 +155,120 @@ contract LOVE20ExtensionLp is
     }
 
     function joinedValue() external view returns (uint256) {
-        return _lpToTokenAmount(totalJoinedAmount);
+        return _lpToTokenAmount(totalJoinedAmount());
     }
 
     function joinedValueByAccount(
         address account
     ) external view returns (uint256) {
-        ILOVE20ExtensionTokenJoinAuto.JoinInfo memory info = _joinInfo[account];
-        return _lpToTokenAmount(info.amount);
+        return _lpToTokenAmount(_amountHistoryByAccount[account].latestValue());
     }
 
     // ============================================
-    // ILOVE20ExtensionAutoScore IMPLEMENTATION
+    // REWARD CALCULATION
     // ============================================
 
-    function _scoreForAccount(
-        address account,
-        uint256 totalTokenSupply,
-        uint256 totalGovVotes
-    ) internal view returns (uint256) {
-        uint256 joinedAmount = _joinInfo[account].amount;
-        uint256 govVotes = _stake.validGovVotes(tokenAddress, account);
-
-        uint256 score = (joinedAmount * lpRatioPrecision) / totalTokenSupply;
-        if (govRatioMultiplier > 0) {
-            uint256 govVotesRatio = (govVotes *
-                lpRatioPrecision *
-                govRatioMultiplier) / totalGovVotes;
-            score = score > govVotesRatio ? govVotesRatio : score;
-        }
-
-        return score;
-    }
-
-    function _calculateScoresForAccounts(
-        address[] memory accounts
-    )
-        internal
-        view
-        returns (uint256 totalCalculated, uint256[] memory scoresCalculated)
-    {
-        uint256 totalTokenSupply = _joinToken.totalSupply();
-        uint256 totalGovVotes = _stake.govVotesNum(tokenAddress);
-
-        uint256 accountsLength = accounts.length;
-        scoresCalculated = new uint256[](accountsLength);
-
-        if (
-            accountsLength == 0 || totalTokenSupply == 0 || totalGovVotes == 0
-        ) {
-            return (0, scoresCalculated);
-        }
-
-        for (uint256 i = 0; i < accountsLength; i++) {
-            address account = accounts[i];
-            uint256 score = _scoreForAccount(
-                account,
-                totalTokenSupply,
-                totalGovVotes
-            );
-
-            scoresCalculated[i] = score;
-            totalCalculated += score;
-        }
-    }
-
-    function calculateScore(
+    /// @dev Calculate both mintReward and burnReward for an account in a specific round
+    function _calculateRewards(
+        uint256 round,
         address account
-    )
-        public
-        view
-        override(IAutoScore, LOVE20ExtensionBaseTokenJoinAuto)
-        returns (uint256 total, uint256 score)
-    {
-        address[] memory accounts = _center.accounts(tokenAddress, actionId);
-        uint256 totalTokenSupply = _joinToken.totalSupply();
-        uint256 totalGovVotes = _stake.govVotesNum(tokenAddress);
-
-        if (
-            accounts.length == 0 || totalTokenSupply == 0 || totalGovVotes == 0
-        ) {
+    ) internal view returns (uint256 mintReward, uint256 burnReward) {
+        if (round >= _verify.currentRound()) {
             return (0, 0);
         }
 
-        score = 0;
-        for (uint256 i = 0; i < accounts.length; i++) {
-            address a = accounts[i];
-            uint256 s = _scoreForAccount(a, totalTokenSupply, totalGovVotes);
-            total += s;
-            if (a == account) {
-                score = s;
+        (uint256 totalActionReward, ) = _mint.actionRewardByActionIdByAccount(
+            tokenAddress,
+            round,
+            actionId,
+            address(this)
+        );
+
+        if (totalActionReward == 0) {
+            return (0, 0);
+        }
+
+        uint256 joinedAmount = amountByAccountByRound(account, round);
+        uint256 totalJoined = totalJoinedAmountByRound(round);
+
+        if (totalJoined == 0 || joinedAmount == 0) {
+            return (0, 0);
+        }
+
+        // tokenRatio = joinedAmount / totalJoined (scaled by lpRatioPrecision)
+        uint256 tokenRatio = (joinedAmount * lpRatioPrecision) / totalJoined;
+        uint256 theoreticalReward = (totalActionReward * tokenRatio) /
+            lpRatioPrecision;
+
+        // Calculate score (may be limited by gov votes)
+        uint256 score = tokenRatio;
+        if (govRatioMultiplier > 0) {
+            uint256 totalGovVotes = _stake.govVotesNum(tokenAddress);
+            if (totalGovVotes == 0) {
+                return (0, 0);
+            }
+            uint256 govVotes = _stake.validGovVotes(tokenAddress, account);
+            uint256 govVotesRatio = (govVotes *
+                lpRatioPrecision *
+                govRatioMultiplier) / totalGovVotes;
+            if (govVotesRatio < tokenRatio) {
+                score = govVotesRatio;
             }
         }
-        return (total, score);
+
+        mintReward = (totalActionReward * score) / lpRatioPrecision;
+        burnReward = theoreticalReward > mintReward
+            ? theoreticalReward - mintReward
+            : 0;
     }
 
-    function calculateScores()
-        public
+    /// @dev Calculate reward for an account (interface compatibility)
+    function _calculateReward(
+        uint256 round,
+        address account
+    ) internal view virtual override returns (uint256) {
+        (uint256 mintReward, ) = _calculateRewards(round, account);
+        return mintReward;
+    }
+
+    /// @dev Override to record burnReward at claim time
+    function _claimReward(
+        uint256 round
+    ) internal virtual override returns (uint256 amount) {
+        if (_claimedReward[round][msg.sender] > 0) {
+            revert AlreadyClaimed();
+        }
+
+        (uint256 mintReward, uint256 burnReward) = _calculateRewards(
+            round,
+            msg.sender
+        );
+        amount = mintReward;
+
+        _claimedReward[round][msg.sender] = amount;
+        _burnReward[round][msg.sender] = burnReward;
+
+        if (amount > 0) {
+            IERC20(tokenAddress).safeTransfer(msg.sender, amount);
+        }
+
+        emit ClaimReward(tokenAddress, round, actionId, msg.sender, amount);
+    }
+
+    /// @notice Get reward info for an account in a specific round
+    function rewardInfoByAccount(
+        uint256 round,
+        address account
+    )
+        external
         view
-        override(IAutoScore, LOVE20ExtensionBaseTokenJoinAuto)
-        returns (uint256 totalCalculated, uint256[] memory scoresCalculated)
+        returns (uint256 mintReward, uint256 burnReward, bool isMinted)
     {
-        address[] memory accounts = _center.accounts(tokenAddress, actionId);
-        return _calculateScoresForAccounts(accounts);
+        uint256 claimedReward = _claimedReward[round][account];
+        if (claimedReward > 0) {
+            return (claimedReward, _burnReward[round][account], true);
+        }
+
+        (mintReward, burnReward) = _calculateRewards(round, account);
     }
 }

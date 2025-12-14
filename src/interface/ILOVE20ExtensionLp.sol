@@ -2,18 +2,30 @@
 pragma solidity =0.8.17;
 
 import {
-    ILOVE20ExtensionTokenJoinAuto
-} from "@extension/src/interface/ILOVE20ExtensionTokenJoinAuto.sol";
+    ILOVE20ExtensionTokenJoin
+} from "@extension/src/interface/ILOVE20ExtensionTokenJoin.sol";
 
-interface ILOVE20ExtensionLp is ILOVE20ExtensionTokenJoinAuto {
+interface ILOVE20ExtensionLp is ILOVE20ExtensionTokenJoin {
     // Lp-specific errors (InvalidJoinTokenAddress is inherited from ITokenJoin)
     error InsufficientLpRatio();
     error InsufficientGovVotes();
-
-    // Join-related events and functions are inherited from ILOVE20ExtensionAutoScoreJoin
 
     // Lp-specific config
     function govRatioMultiplier() external view returns (uint256);
     function lpRatioPrecision() external view returns (uint256);
     function minGovVotes() external view returns (uint256);
+
+    /// @notice Get reward info for an account in a specific round
+    /// @param round The round number
+    /// @param account The account address
+    /// @return mintReward The actual reward amount (after overflow burned)
+    /// @return burnReward The burned (overflow) reward amount
+    /// @return isMinted Whether the reward has been claimed
+    function rewardInfoByAccount(
+        uint256 round,
+        address account
+    )
+        external
+        view
+        returns (uint256 mintReward, uint256 burnReward, bool isMinted);
 }
