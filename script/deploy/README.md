@@ -87,7 +87,7 @@ source 99_check.sh
 
 1. **已部署 LOVE20 Extension Center**
 
-   - 确保 `script/network/<network>/address.extension.center.params` 文件包含 extensionCenterAddress
+   - 确保 `script/network/<network>/address.extension.center.params` 文件包含 centerAddress
 
 2. **配置账户文件（可选）**
 
@@ -177,10 +177,10 @@ Error: Network parameter is required.
 ### 问题：Extension Center 地址未找到
 
 ```bash
-Error: extensionCenterAddress not found
+Error: centerAddress not found
 ```
 
-**解决**：确保先部署 LOVE20ExtensionCenter，并且 `address.extension.center.params` 文件包含 extensionCenterAddress
+**解决**：确保先部署 LOVE20ExtensionCenter，并且 `address.extension.center.params` 文件包含 centerAddress
 
 ### 问题：部署检查失败
 

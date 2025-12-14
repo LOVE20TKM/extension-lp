@@ -17,7 +17,7 @@ passed_checks=0
 # Check 1: Verify center address
 total_checks=$((total_checks + 1))
 actual_center=$(cast call $extensionFactoryLpAddress "center()(address)" --rpc-url $RPC_URL)
-if check_equal "Center address" "$extensionCenterAddress" "$actual_center"; then
+if check_equal "Center address" "$centerAddress" "$actual_center"; then
     passed_checks=$((passed_checks + 1))
 fi
 

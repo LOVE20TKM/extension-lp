@@ -15,7 +15,7 @@ if [ -z "$extensionFactoryLpAddress" ]; then
     source $network_dir/address.extension.factory.lp.params
 fi
 
-if [ -z "$extensionCenterAddress" ]; then
+if [ -z "$centerAddress" ]; then
     source $network_dir/address.extension.center.params
 fi
 
@@ -46,6 +46,6 @@ verify_contract(){
 echo "verify_contract() loaded"
 
 # Verify LOVE20ExtensionFactoryLp
-constructor_args=$(cast abi-encode "constructor(address)" $extensionCenterAddress)
+constructor_args=$(cast abi-encode "constructor(address)" $centerAddress)
 verify_contract $extensionFactoryLpAddress "LOVE20ExtensionFactoryLp" "src/LOVE20ExtensionFactoryLp.sol" "$constructor_args"
 

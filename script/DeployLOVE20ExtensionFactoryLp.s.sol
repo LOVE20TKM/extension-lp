@@ -7,32 +7,29 @@ import {LOVE20ExtensionFactoryLp} from "../src/LOVE20ExtensionFactoryLp.sol";
 /**
  * @title DeployLOVE20ExtensionFactoryLp
  * @notice Script for deploying LOVE20ExtensionFactoryLp contract
- * @dev Reads extensionCenterAddress from address.extension.center.params and writes deployed address to address.extension.factory.lp.params
+ * @dev Reads centerAddress from address.extension.center.params and writes deployed address to address.extension.factory.lp.params
  */
 contract DeployLOVE20ExtensionFactoryLp is BaseScript {
     address public extensionFactoryLpAddress;
 
     /**
-     * @notice Deploy LOVE20ExtensionFactoryLp with extensionCenterAddress from address.extension.center.params
+     * @notice Deploy LOVE20ExtensionFactoryLp with centerAddress from address.extension.center.params
      * @dev The required center address is read from the network's address.extension.center.params file
      */
     function run() external {
-        // Read extensionCenterAddress from address.extension.center.params
-        address extensionCenterAddress = readAddressParamsFile(
+        // Read centerAddress from address.extension.center.params
+        address centerAddress = readAddressParamsFile(
             "address.extension.center.params",
-            "extensionCenterAddress"
+            "centerAddress"
         );
 
         // Validate address
-        require(
-            extensionCenterAddress != address(0),
-            "extensionCenterAddress not found"
-        );
+        require(centerAddress != address(0), "centerAddress not found");
 
         // Deploy LOVE20ExtensionFactoryLp
         vm.startBroadcast();
         extensionFactoryLpAddress = address(
-            new LOVE20ExtensionFactoryLp(extensionCenterAddress)
+            new LOVE20ExtensionFactoryLp(centerAddress)
         );
         vm.stopBroadcast();
 
@@ -43,7 +40,7 @@ contract DeployLOVE20ExtensionFactoryLp is BaseScript {
                 extensionFactoryLpAddress
             );
             console.log("Constructor parameters:");
-            console.log("  extensionCenterAddress:", extensionCenterAddress);
+            console.log("  centerAddress:", centerAddress);
         }
 
         // Update address file
