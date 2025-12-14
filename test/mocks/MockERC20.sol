@@ -51,4 +51,9 @@ contract MockERC20 {
     ) external view returns (uint256) {
         return _allowances[owner][spender];
     }
+
+    function burn(uint256 amount) external {
+        _balances[msg.sender] -= amount;
+        _totalSupply -= amount;
+    }
 }

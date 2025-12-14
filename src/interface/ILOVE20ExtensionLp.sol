@@ -10,6 +10,15 @@ interface ILOVE20ExtensionLp is ILOVE20ExtensionTokenJoin {
     error InsufficientLpRatio();
     error InsufficientGovVotes();
 
+    // Lp-specific events
+    event BurnReward(
+        address indexed tokenAddress,
+        uint256 round,
+        uint256 indexed actionId,
+        address indexed account,
+        uint256 amount
+    );
+
     // Lp-specific config
     function govRatioMultiplier() external view returns (uint256);
     function lpRatioPrecision() external view returns (uint256);

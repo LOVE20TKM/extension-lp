@@ -22,6 +22,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {
     SafeERC20
 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 
 using RoundHistoryUint256 for RoundHistoryUint256.History;
 using SafeERC20 for IERC20;
@@ -250,6 +251,17 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
 
         if (amount > 0) {
             IERC20(tokenAddress).safeTransfer(msg.sender, amount);
+        }
+
+        if (burnReward > 0) {
+            ILOVE20Token(tokenAddress).burn(burnReward);
+            emit ILOVE20ExtensionLp.BurnReward(
+                tokenAddress,
+                round,
+                actionId,
+                msg.sender,
+                burnReward
+            );
         }
 
         emit ClaimReward(tokenAddress, round, actionId, msg.sender, amount);
