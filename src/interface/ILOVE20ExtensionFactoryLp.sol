@@ -13,7 +13,6 @@ interface ILOVE20ExtensionFactoryLp is ILOVE20ExtensionFactory {
         uint256 waitingBlocks; // Number of blocks to wait before unstaking
         uint256 govRatioMultiplier; // Governance ratio multiplier
         uint256 minGovVotes; // Minimum governance votes required
-        uint256 lpRatioPrecision; // LP ratio precision for minimum participation requirement
     }
 
     // ============================================
@@ -32,8 +31,7 @@ interface ILOVE20ExtensionFactoryLp is ILOVE20ExtensionFactory {
         address joinTokenAddress,
         uint256 waitingBlocks,
         uint256 govRatioMultiplier,
-        uint256 minGovVotes,
-        uint256 lpRatioPrecision
+        uint256 minGovVotes
     );
 
     function createExtension(
@@ -41,8 +39,7 @@ interface ILOVE20ExtensionFactoryLp is ILOVE20ExtensionFactory {
         address joinTokenAddress,
         uint256 waitingBlocks,
         uint256 govRatioMultiplier,
-        uint256 minGovVotes,
-        uint256 lpRatioPrecision
+        uint256 minGovVotes
     ) external returns (address extension);
 
     /// @notice Get extension parameters
@@ -52,7 +49,6 @@ interface ILOVE20ExtensionFactoryLp is ILOVE20ExtensionFactory {
     /// @return waitingBlocks The waiting blocks for unstaking
     /// @return govRatioMultiplier The governance ratio multiplier
     /// @return minGovVotes The minimum governance votes required
-    /// @return lpRatioPrecision The LP ratio precision for minimum participation requirement
     function extensionParams(
         address extension
     )
@@ -63,7 +59,6 @@ interface ILOVE20ExtensionFactoryLp is ILOVE20ExtensionFactory {
             address joinTokenAddress,
             uint256 waitingBlocks,
             uint256 govRatioMultiplier,
-            uint256 minGovVotes,
-            uint256 lpRatioPrecision
+            uint256 minGovVotes
         );
 }

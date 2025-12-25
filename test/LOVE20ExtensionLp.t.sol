@@ -67,7 +67,6 @@ contract LOVE20ExtensionLpTest is Test {
     uint256 constant WAITING_BLOCKS = 7;
     uint256 constant GOV_RATIO_MULTIPLIER = 2;
     uint256 constant MIN_GOV_VOTES = 1e18;
-    uint256 constant LP_RATIO_PRECISION = 1000; // 0.1% minimum LP ratio
 
     function setUp() public {
         // Deploy mock contracts
@@ -114,8 +113,7 @@ contract LOVE20ExtensionLpTest is Test {
                 address(joinToken),
                 WAITING_BLOCKS,
                 GOV_RATIO_MULTIPLIER,
-                MIN_GOV_VOTES,
-                LP_RATIO_PRECISION
+                MIN_GOV_VOTES
             )
         );
 
@@ -170,8 +168,7 @@ contract LOVE20ExtensionLpTest is Test {
             address(invalidStakeToken),
             WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES,
-            LP_RATIO_PRECISION
+            MIN_GOV_VOTES
         );
     }
 
@@ -192,8 +189,7 @@ contract LOVE20ExtensionLpTest is Test {
             address(wrongPair),
             WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES,
-            LP_RATIO_PRECISION
+            MIN_GOV_VOTES
         );
     }
 
@@ -295,11 +291,11 @@ contract LOVE20ExtensionLpTest is Test {
             .rewardInfoByAccount(round, user1);
 
         // User1 has 100% of LP (totalJoined = 100e18)
-        // tokenRatio = 100e18 * 1000 / 100e18 = 1000
-        // govRatio = 100e18 * 1000 * 2 / 1000e18 = 200
-        // score = min(1000, 200) = 200
-        // mintReward = 1000e18 * 200 / 1000 = 200e18
-        // theoreticalReward = 1000e18 * 1000 / 1000 = 1000e18
+        // tokenRatio = 100e18 * 1e18 / 100e18 = 1e18
+        // govRatio = 100e18 * 1e18 * 2 / 1000e18 = 2e17
+        // score = min(1e18, 2e17) = 2e17
+        // mintReward = 1000e18 * 2e17 / 1e18 = 200e18
+        // theoreticalReward = 1000e18 * 1e18 / 1e18 = 1000e18
         // burnReward = 1000e18 - 200e18 = 800e18
         assertEq(mintReward, 200e18, "mintReward should be 200e18");
         assertEq(burnReward, 800e18, "burnReward should be 800e18");
@@ -320,26 +316,26 @@ contract LOVE20ExtensionLpTest is Test {
         uint256 totalReward = 1000e18;
         mint.setActionReward(address(token), round, ACTION_ID, totalReward);
 
-        // User1: tokenRatio = 100e18 * 1000 / 300e18 = 333, govRatio = 200, score = 200
-        // User2: tokenRatio = 200e18 * 1000 / 300e18 = 666, govRatio = 400, score = 400
+        // User1: tokenRatio = 100e18 * 1e18 / 300e18 = 333333333333333333, govRatio = 2e17, score = 2e17
+        // User2: tokenRatio = 200e18 * 1e18 / 300e18 = 666666666666666666, govRatio = 4e17, score = 4e17
 
         (uint256 mintReward1, uint256 burnReward1, bool isMinted1) = extension
             .rewardInfoByAccount(round, user1);
         (uint256 mintReward2, uint256 burnReward2, bool isMinted2) = extension
             .rewardInfoByAccount(round, user2);
 
-        // User1: mintReward = 1000e18 * 200 / 1000 = 200e18
-        //        theoreticalReward = 1000e18 * 333 / 1000 = 333e18
-        //        burnReward = 333e18 - 200e18 = 133e18
+        // User1: mintReward = 1000e18 * 2e17 / 1e18 = 200e18
+        //        theoreticalReward = 1000e18 * 333333333333333333 / 1e18 = 333333333333333333000
+        //        burnReward = 333333333333333333000 - 200e18 = 133333333333333333000
         assertEq(mintReward1, 200e18, "User1 mintReward");
-        assertEq(burnReward1, 133e18, "User1 burnReward");
+        assertEq(burnReward1, 133333333333333333000, "User1 burnReward");
         assertFalse(isMinted1);
 
-        // User2: mintReward = 1000e18 * 400 / 1000 = 400e18
-        //        theoreticalReward = 1000e18 * 666 / 1000 = 666e18
-        //        burnReward = 666e18 - 400e18 = 266e18
+        // User2: mintReward = 1000e18 * 4e17 / 1e18 = 400e18
+        //        theoreticalReward = 1000e18 * 666666666666666666 / 1e18 = 666666666666666666000
+        //        burnReward = 666666666666666666000 - 400e18 = 266666666666666666000
         assertEq(mintReward2, 400e18, "User2 mintReward");
-        assertEq(burnReward2, 266e18, "User2 burnReward");
+        assertEq(burnReward2, 266666666666666666000, "User2 burnReward");
         assertFalse(isMinted2);
     }
 
@@ -399,8 +395,7 @@ contract LOVE20ExtensionLpTest is Test {
             address(joinToken),
             WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES,
-            LP_RATIO_PRECISION
+            MIN_GOV_VOTES
         );
 
         assertTrue(factory.exists(newExtension));
@@ -424,8 +419,7 @@ contract LOVE20ExtensionLpTest is Test {
             address(joinToken2),
             WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES,
-            LP_RATIO_PRECISION
+            MIN_GOV_VOTES
         );
 
         address[] memory exts = factory.extensions();
@@ -451,8 +445,7 @@ contract LOVE20ExtensionLpTest is Test {
             address(joinToken2),
             WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES,
-            LP_RATIO_PRECISION
+            MIN_GOV_VOTES
         );
 
         assertEq(factory.extensionsAtIndex(0), address(extension));
@@ -470,8 +463,7 @@ contract LOVE20ExtensionLpTest is Test {
             address joinTokenAddr,
             uint256 waitingBlocks,
             uint256 govRatioMult,
-            uint256 minGovVotesVal,
-            uint256 lpRatioPrecision
+            uint256 minGovVotesVal
         ) = factory.extensionParams(address(extension));
 
         assertEq(tokenAddr, address(token), "tokenAddr mismatch");
@@ -479,11 +471,6 @@ contract LOVE20ExtensionLpTest is Test {
         assertEq(waitingBlocks, WAITING_BLOCKS, "waitingBlocks mismatch");
         assertEq(govRatioMult, GOV_RATIO_MULTIPLIER, "govRatioMult mismatch");
         assertEq(minGovVotesVal, MIN_GOV_VOTES, "minGovVotesVal mismatch");
-        assertEq(
-            lpRatioPrecision,
-            LP_RATIO_PRECISION,
-            "lpRatioPrecision mismatch"
-        );
 
         assertEq(
             extension.tokenAddress(),
@@ -499,8 +486,7 @@ contract LOVE20ExtensionLpTest is Test {
             address joinTokenAddr,
             uint256 waitingBlocks,
             uint256 govRatioMult,
-            uint256 minGovVotesVal,
-            uint256 lpRatioPrecision
+            uint256 minGovVotesVal
         ) = factory.extensionParams(address(0x999));
 
         assertEq(tokenAddr, address(0));
@@ -508,7 +494,6 @@ contract LOVE20ExtensionLpTest is Test {
         assertEq(waitingBlocks, 0);
         assertEq(govRatioMult, 0);
         assertEq(minGovVotesVal, 0);
-        assertEq(lpRatioPrecision, 0);
     }
 
     function test_Factory_Center() public view {
@@ -524,64 +509,8 @@ contract LOVE20ExtensionLpTest is Test {
             address(0),
             WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES,
-            LP_RATIO_PRECISION
+            MIN_GOV_VOTES
         );
-    }
-
-    // ============================================
-    // LP Ratio Precision Tests
-    // ============================================
-
-    function test_Join_RevertIfInsufficientLpRatio() public {
-        vm.prank(user1);
-        vm.expectRevert(ILOVE20ExtensionLp.InsufficientLpRatio.selector);
-        extension.join(1e18, new string[](0));
-    }
-
-    function test_Join_SucceedWithSufficientLpRatio() public {
-        uint256 minRequired = (joinToken.totalSupply() +
-            LP_RATIO_PRECISION -
-            1) / LP_RATIO_PRECISION;
-        vm.prank(user1);
-        extension.join(minRequired, new string[](0));
-
-        assertEq(extension.totalJoinedAmount(), minRequired);
-    }
-
-    function test_Join_NoRestrictionWhenLpRatioPrecisionIsZero() public {
-        token.mint(address(this), 1e18);
-        token.approve(address(factory), 1e18);
-        address newExtensionAddr = factory.createExtension(
-            address(token),
-            address(joinToken),
-            WAITING_BLOCKS,
-            GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES,
-            0 // No LP ratio restriction
-        );
-
-        submit.setActionInfo(address(token), ACTION_ID + 100, newExtensionAddr);
-        vote.setVotedActionIds(
-            address(token),
-            join.currentRound(),
-            ACTION_ID + 100
-        );
-        token.mint(newExtensionAddr, 1e18);
-
-        LOVE20ExtensionLp newExtension = LOVE20ExtensionLp(newExtensionAddr);
-
-        vm.prank(user1);
-        joinToken.approve(address(newExtension), type(uint256).max);
-
-        vm.prank(user1);
-        newExtension.join(1, new string[](0));
-
-        assertEq(newExtension.totalJoinedAmount(), 1);
-    }
-
-    function test_ImmutableVariables_LpRatioPrecision() public view {
-        assertEq(extension.lpRatioPrecision(), LP_RATIO_PRECISION);
     }
 
     // ============================================

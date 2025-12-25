@@ -7,7 +7,6 @@ import {
 
 interface ILOVE20ExtensionLp is ILOVE20ExtensionTokenJoin {
     // Lp-specific errors (InvalidJoinTokenAddress is inherited from ITokenJoin)
-    error InsufficientLpRatio();
     error InsufficientGovVotes();
 
     // Lp-specific events
@@ -21,7 +20,6 @@ interface ILOVE20ExtensionLp is ILOVE20ExtensionTokenJoin {
 
     // Lp-specific config
     function govRatioMultiplier() external view returns (uint256);
-    function lpRatioPrecision() external view returns (uint256);
     function minGovVotes() external view returns (uint256);
 
     /// @notice Get reward info for an account in a specific round

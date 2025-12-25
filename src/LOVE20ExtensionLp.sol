@@ -32,8 +32,9 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
     // STATE VARIABLES
     // ============================================
 
+    uint256 internal constant LP_RATIO_PRECISION = 1e18;
+
     uint256 public immutable govRatioMultiplier;
-    uint256 public immutable lpRatioPrecision;
     uint256 public immutable minGovVotes;
 
     /// @dev round => account => burnReward (recorded at claim time)
@@ -45,8 +46,7 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
         address joinTokenAddress_,
         uint256 waitingBlocks_,
         uint256 govRatioMultiplier_,
-        uint256 minGovVotes_,
-        uint256 lpRatioPrecision_
+        uint256 minGovVotes_
     )
         LOVE20ExtensionBaseTokenJoin(
             factory_,
@@ -57,7 +57,6 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
     {
         govRatioMultiplier = govRatioMultiplier_;
         minGovVotes = minGovVotes_;
-        lpRatioPrecision = lpRatioPrecision_;
         _validateJoinToken();
     }
 
@@ -75,17 +74,6 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
             );
             if (userGovVotes < minGovVotes) {
                 revert ILOVE20ExtensionLp.InsufficientGovVotes();
-            }
-        }
-
-        // Validate LP ratio before joining
-        if (lpRatioPrecision > 0) {
-            uint256 totalLpSupply = _joinToken.totalSupply();
-            if (totalLpSupply > 0) {
-                uint256 lpRatio = (amount * lpRatioPrecision) / totalLpSupply;
-                if (lpRatio < 1) {
-                    revert ILOVE20ExtensionLp.InsufficientLpRatio();
-                }
             }
         }
 
@@ -196,13 +184,13 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
             return (0, 0);
         }
 
-        // tokenRatio = joinedAmount / totalJoined (scaled by lpRatioPrecision)
-        uint256 tokenRatio = (joinedAmount * lpRatioPrecision) / totalJoined;
+        // tokenRatio = joinedAmount / totalJoined (scaled by LP_RATIO_PRECISION)
+        uint256 tokenRatio = (joinedAmount * LP_RATIO_PRECISION) / totalJoined;
         uint256 theoreticalReward = (totalActionReward * tokenRatio) /
-            lpRatioPrecision;
+            LP_RATIO_PRECISION;
 
-        // Calculate score (may be limited by gov votes)
-        uint256 score = tokenRatio;
+        // Calculate ratio (may be limited by gov votes)
+        uint256 ratio = tokenRatio;
         if (govRatioMultiplier > 0) {
             uint256 totalGovVotes = _stake.govVotesNum(tokenAddress);
             if (totalGovVotes == 0) {
@@ -210,14 +198,14 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
             }
             uint256 govVotes = _stake.validGovVotes(tokenAddress, account);
             uint256 govVotesRatio = (govVotes *
-                lpRatioPrecision *
+                LP_RATIO_PRECISION *
                 govRatioMultiplier) / totalGovVotes;
             if (govVotesRatio < tokenRatio) {
-                score = govVotesRatio;
+                ratio = govVotesRatio;
             }
         }
 
-        mintReward = (totalActionReward * score) / lpRatioPrecision;
+        mintReward = (totalActionReward * ratio) / LP_RATIO_PRECISION;
         burnReward = theoreticalReward > mintReward
             ? theoreticalReward - mintReward
             : 0;
