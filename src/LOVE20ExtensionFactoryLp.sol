@@ -64,7 +64,7 @@ contract LOVE20ExtensionFactoryLp is
         // Register extension and transfer initial tokens
         _registerExtension(extension, tokenAddress);
 
-        emit ExtensionCreated(
+        emit ExtensionCreate(
             extension,
             tokenAddress,
             joinTokenAddress,

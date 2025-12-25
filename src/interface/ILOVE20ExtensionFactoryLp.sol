@@ -25,7 +25,7 @@ interface ILOVE20ExtensionFactoryLp is ILOVE20ExtensionFactory {
     // EVENTS
     // ============================================
 
-    event ExtensionCreated(
+    event ExtensionCreate(
         address extension,
         address tokenAddress,
         address joinTokenAddress,
