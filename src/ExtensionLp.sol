@@ -24,16 +24,11 @@ using RoundHistoryUint256 for RoundHistoryUint256.History;
 using SafeERC20 for IERC20;
 
 contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
-    // ============================================
-    // STATE VARIABLES
-    // ============================================
-
     uint256 internal constant LP_RATIO_PRECISION = 1e18;
 
-    uint256 public immutable govRatioMultiplier;
-    uint256 public immutable minGovVotes;
+    uint256 public immutable GOV_RATIO_MULTIPLIER;
+    uint256 public immutable MIN_GOV_VOTES;
 
-    /// @notice The stake contract address
     ILOVE20Stake internal immutable _stake;
 
     /// @dev round => account => burnReward (recorded at claim time)
@@ -54,8 +49,8 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
             waitingBlocks_
         )
     {
-        govRatioMultiplier = govRatioMultiplier_;
-        minGovVotes = minGovVotes_;
+        GOV_RATIO_MULTIPLIER = govRatioMultiplier_;
+        MIN_GOV_VOTES = minGovVotes_;
         _stake = ILOVE20Stake(_center.stakeAddress());
         _validateJoinToken();
     }
@@ -66,18 +61,16 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
     ) public virtual override(ExtensionBaseTokenJoin, IExtensionTokenJoin) {
         bool isFirstJoin = _joinedBlockByAccount[msg.sender] == 0;
 
-        // Check minimum governance votes requirement only on first join
         if (isFirstJoin) {
             uint256 userGovVotes = _stake.validGovVotes(
                 tokenAddress,
                 msg.sender
             );
-            if (userGovVotes < minGovVotes) {
+            if (userGovVotes < MIN_GOV_VOTES) {
                 revert IExtensionLp.InsufficientGovVotes();
             }
         }
 
-        // Call parent join function
         super.join(amount, verificationInfos);
     }
 
@@ -110,10 +103,6 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
             revert IExtensionTokenJoin.InvalidJoinTokenAddress();
         }
     }
-
-    // ============================================
-    // IEXTENSION INTERFACE IMPLEMENTATION
-    // ============================================
 
     function isJoinedValueCalculated() external pure returns (bool) {
         return true;
@@ -153,11 +142,6 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
         return _lpToTokenAmount(_amountHistoryByAccount[account].latestValue());
     }
 
-    // ============================================
-    // REWARD CALCULATION
-    // ============================================
-
-    /// @dev Calculate both mintReward and burnReward for an account in a specific round
     function _calculateRewards(
         uint256 round,
         address account
@@ -184,14 +168,12 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
             return (0, 0);
         }
 
-        // tokenRatio = joinedAmount / totalJoined (scaled by LP_RATIO_PRECISION)
         uint256 tokenRatio = (joinedAmount * LP_RATIO_PRECISION) / totalJoined;
         uint256 theoreticalReward = (totalActionReward * tokenRatio) /
             LP_RATIO_PRECISION;
 
-        // Calculate ratio (may be limited by gov votes)
         uint256 ratio = tokenRatio;
-        if (govRatioMultiplier > 0) {
+        if (GOV_RATIO_MULTIPLIER > 0) {
             uint256 totalGovVotes = _stake.govVotesNum(tokenAddress);
             if (totalGovVotes == 0) {
                 return (0, 0);
@@ -199,7 +181,7 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
             uint256 govVotes = _stake.validGovVotes(tokenAddress, account);
             uint256 govVotesRatio = (govVotes *
                 LP_RATIO_PRECISION *
-                govRatioMultiplier) / totalGovVotes;
+                GOV_RATIO_MULTIPLIER) / totalGovVotes;
             if (govVotesRatio < tokenRatio) {
                 ratio = govVotesRatio;
             }
@@ -211,7 +193,6 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
             : 0;
     }
 
-    /// @dev Calculate reward for an account (interface compatibility)
     function _calculateReward(
         uint256 round,
         address account
@@ -220,7 +201,6 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
         return mintReward;
     }
 
-    /// @dev Override to record burnReward at claim time
     function _claimReward(
         uint256 round
     ) internal virtual override returns (uint256 amount) {
@@ -255,7 +235,6 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
         emit ClaimReward(tokenAddress, round, actionId, msg.sender, amount);
     }
 
-    /// @notice Get reward info for an account in a specific round
     function rewardInfoByAccount(
         uint256 round,
         address account

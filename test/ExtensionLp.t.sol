@@ -5,21 +5,19 @@ import {Test, console} from "forge-std/Test.sol";
 import {ExtensionLp} from "../src/ExtensionLp.sol";
 import {ExtensionFactoryLp} from "../src/ExtensionFactoryLp.sol";
 import {IExtensionLp} from "../src/interface/IExtensionLp.sol";
-import {
-    IExtensionFactoryLp
-} from "../src/interface/IExtensionFactoryLp.sol";
+import {IExtensionFactoryLp} from "../src/interface/IExtensionFactoryLp.sol";
 import {IExtension} from "@extension/src/interface/IExtension.sol";
 import {
     IExtensionFactory
 } from "@extension/src/interface/IExtensionFactory.sol";
-import {
-    IExtensionCenter
-} from "@extension/src/interface/IExtensionCenter.sol";
+import {IExtensionCenter} from "@extension/src/interface/IExtensionCenter.sol";
 import {ExtensionCenter} from "@extension/src/ExtensionCenter.sol";
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
-import {IExtensionTokenJoin} from "@extension/src/interface/IExtensionTokenJoin.sol";
+import {
+    IExtensionTokenJoin
+} from "@extension/src/interface/IExtensionTokenJoin.sol";
 
 // Import mock contracts
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -198,9 +196,9 @@ contract ExtensionLpTest is Test {
     // ============================================
 
     function test_ImmutableVariables_GovRatioMultiplier() public view {
-        assertEq(extension.govRatioMultiplier(), GOV_RATIO_MULTIPLIER);
+        assertEq(extension.GOV_RATIO_MULTIPLIER(), GOV_RATIO_MULTIPLIER);
         assertEq(extension.joinTokenAddress(), address(joinToken));
-        assertEq(extension.waitingBlocks(), WAITING_BLOCKS);
+        assertEq(extension.WAITING_BLOCKS(), WAITING_BLOCKS);
     }
 
     function test_IsJoinedValueCalculated() public view {
@@ -458,42 +456,32 @@ contract ExtensionLpTest is Test {
         vm.prank(user1);
         extension.join(10e18, new string[](0));
 
-        (
-            address tokenAddr,
-            address joinTokenAddr,
-            uint256 waitingBlocks,
-            uint256 govRatioMult,
-            uint256 minGovVotesVal
-        ) = factory.extensionParams(address(extension));
-
-        assertEq(tokenAddr, address(token), "tokenAddr mismatch");
-        assertEq(joinTokenAddr, address(joinToken), "joinTokenAddr mismatch");
-        assertEq(waitingBlocks, WAITING_BLOCKS, "waitingBlocks mismatch");
-        assertEq(govRatioMult, GOV_RATIO_MULTIPLIER, "govRatioMult mismatch");
-        assertEq(minGovVotesVal, MIN_GOV_VOTES, "minGovVotesVal mismatch");
-
         assertEq(
             extension.tokenAddress(),
             address(token),
             "tokenAddr mismatch"
         );
+        assertEq(
+            extension.joinTokenAddress(),
+            address(joinToken),
+            "joinTokenAddr mismatch"
+        );
+        assertEq(
+            extension.WAITING_BLOCKS(),
+            WAITING_BLOCKS,
+            "WAITING_BLOCKS mismatch"
+        );
+        assertEq(
+            extension.GOV_RATIO_MULTIPLIER(),
+            GOV_RATIO_MULTIPLIER,
+            "govRatioMult mismatch"
+        );
+        assertEq(
+            extension.MIN_GOV_VOTES(),
+            MIN_GOV_VOTES,
+            "minGovVotesVal mismatch"
+        );
         assertEq(extension.actionId(), ACTION_ID, "actionId mismatch");
-    }
-
-    function test_Factory_ExtensionParams_NonExistent() public view {
-        (
-            address tokenAddr,
-            address joinTokenAddr,
-            uint256 waitingBlocks,
-            uint256 govRatioMult,
-            uint256 minGovVotesVal
-        ) = factory.extensionParams(address(0x999));
-
-        assertEq(tokenAddr, address(0));
-        assertEq(joinTokenAddr, address(0));
-        assertEq(waitingBlocks, 0);
-        assertEq(govRatioMult, 0);
-        assertEq(minGovVotesVal, 0);
     }
 
     function test_Factory_Center() public view {
@@ -501,9 +489,7 @@ contract ExtensionLpTest is Test {
     }
 
     function test_Factory_RevertIfInvalidJoinTokenAddress() public {
-        vm.expectRevert(
-            IExtensionFactoryLp.InvalidJoinTokenAddress.selector
-        );
+        vm.expectRevert(IExtensionFactoryLp.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(0),
@@ -562,6 +548,6 @@ contract ExtensionLpTest is Test {
     }
 
     function test_ImmutableVariables_MinGovVotes() public view {
-        assertEq(extension.minGovVotes(), MIN_GOV_VOTES);
+        assertEq(extension.MIN_GOV_VOTES(), MIN_GOV_VOTES);
     }
 }
