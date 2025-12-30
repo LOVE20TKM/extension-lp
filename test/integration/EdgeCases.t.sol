@@ -2,13 +2,20 @@
 pragma solidity =0.8.17;
 
 import {Test} from "forge-std/Test.sol";
-import {TestExtensionLpHelper, FlowUserParams} from "../TestExtensionLpHelper.sol";
+import {
+    TestExtensionLpHelper,
+    FlowUserParams
+} from "../TestExtensionLpHelper.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IUniswapV2Pair} from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
+import {
+    IUniswapV2Pair
+} from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
 import {ILOVE20Submit} from "@core/interfaces/ILOVE20Submit.sol";
-import {FIRST_PARENT_TOKEN_FUNDRAISING_GOAL} from "@extension/lib/core/test/Constant.sol";
+import {
+    FIRST_PARENT_TOKEN_FUNDRAISING_GOAL
+} from "@extension/lib/core/test/Constant.sol";
 
 contract EdgeCasesTest is Test {
     TestExtensionLpHelper public h;
@@ -23,21 +30,19 @@ contract EdgeCasesTest is Test {
         (bob, alice) = h.finish_launch();
         tokenAddress = h.firstTokenAddress();
         extension = h.createExtensionWithDefaults(tokenAddress);
-        
+
         // Create extension with MIN_GOV_VOTES = 0 for test_extension_minGovVotes_zero
-        extensionZeroMin = h.createExtension(
-            tokenAddress,
-            7,
-            2,
-            0
-        );
-        
+        extensionZeroMin = h.createExtension(tokenAddress, 7, 2, 0);
+
         // Setup action with extension address as whiteListAddress
         h.stake_liquidity(bob);
         h.stake_token(bob);
-        bob.actionId = h.submit_new_action_with_extension(bob, address(extension));
+        bob.actionId = h.submit_new_action_with_extension(
+            bob,
+            address(extension)
+        );
         alice.actionId = bob.actionId;
-        
+
         // Note: extensionZeroMin action will be submitted in test_extension_minGovVotes_zero
         // in a new round to avoid OnlyOneSubmitPerRound() error
     }
@@ -49,7 +54,7 @@ contract EdgeCasesTest is Test {
         h.next_phase();
         // Bob joins to create some joined amount
         h.extension_join(bob, extension, 1e18);
-        
+
         h.next_phase();
         h.verify(bob);
 
@@ -61,11 +66,8 @@ contract EdgeCasesTest is Test {
         assertGt(round, 0, "Round should be > 0");
 
         // Alice didn't join
-        (
-            uint256 mintReward,
-            uint256 burnReward,
-            bool isMinted
-        ) = extension.rewardInfoByAccount(round, alice.userAddress);
+        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+            .rewardInfoByAccount(round, alice.userAddress);
 
         assertEq(mintReward, 0, "Non-joined user mintReward should be 0");
         assertEq(burnReward, 0, "Non-joined user burnReward should be 0");
@@ -82,11 +84,8 @@ contract EdgeCasesTest is Test {
 
         uint256 futureRound = h.verifyContract().currentRound() + 10;
 
-        (
-            uint256 mintReward,
-            uint256 burnReward,
-            bool isMinted
-        ) = extension.rewardInfoByAccount(futureRound, bob.userAddress);
+        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+            .rewardInfoByAccount(futureRound, bob.userAddress);
 
         assertEq(mintReward, 0, "Future round mintReward should be 0");
         assertEq(burnReward, 0, "Future round burnReward should be 0");
@@ -163,11 +162,8 @@ contract EdgeCasesTest is Test {
 
         uint256 currentRound = h.verifyContract().currentRound();
 
-        (
-            uint256 mintReward,
-            uint256 burnReward,
-            bool isMinted
-        ) = extension.rewardInfoByAccount(currentRound, bob.userAddress);
+        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+            .rewardInfoByAccount(currentRound, bob.userAddress);
 
         assertEq(mintReward, 0, "Current round mintReward should be 0");
         assertEq(burnReward, 0, "Current round burnReward should be 0");
@@ -191,21 +187,29 @@ contract EdgeCasesTest is Test {
 
         uint256 round = h.verifyContract().currentRound() - 1;
 
-        (
-            uint256 mintReward,
-            uint256 burnReward,
-            bool isMinted
-        ) = extension.rewardInfoByAccount(round, bob.userAddress);
+        (uint256 mintReward, uint256 burnReward, ) = extension
+            .rewardInfoByAccount(round, bob.userAddress);
 
         // Note: rewardInfoByAccount returns expected reward even if not minted yet
         // But if no action reward was minted, the totalActionReward should be 0
         // So mintReward should be 0
         // However, if the action reward was minted by someone else, it might not be 0
         // Let's check if action reward exists for this round
-        uint256 totalActionReward = h.mintContract().actionReward(tokenAddress, round);
+        uint256 totalActionReward = h.mintContract().actionReward(
+            tokenAddress,
+            round
+        );
         if (totalActionReward == 0) {
-            assertEq(mintReward, 0, "mintReward should be 0 without action reward");
-            assertEq(burnReward, 0, "burnReward should be 0 without action reward");
+            assertEq(
+                mintReward,
+                0,
+                "mintReward should be 0 without action reward"
+            );
+            assertEq(
+                burnReward,
+                0,
+                "burnReward should be 0 without action reward"
+            );
         }
     }
 
@@ -226,16 +230,19 @@ contract EdgeCasesTest is Test {
         h.forceMint(tokenAddress, poorUser.userAddress, 1e24); // Mint enough tokens
         h.stake_liquidity(poorUser);
         h.stake_token(poorUser);
-        
+
         // Move to next round to submit action for extensionZeroMin
         // (bob already submitted action for extension in setUp, so we can't submit in same round)
         h.next_phase();
         h.next_phase();
         h.next_phase();
         h.next_phase();
-        
+
         // Now submit action for extensionZeroMin in the new round
-        uint256 actionIdZeroMin = h.submit_new_action_with_extension(bob, address(extensionZeroMin));
+        uint256 actionIdZeroMin = h.submit_new_action_with_extension(
+            bob,
+            address(extensionZeroMin)
+        );
         poorUser.actionId = actionIdZeroMin;
         h.vote(poorUser);
 
@@ -246,8 +253,9 @@ contract EdgeCasesTest is Test {
         // Should succeed with MIN_GOV_VOTES = 0
         h.extension_join(poorUser, extensionZeroMin, lpAmount);
 
-        (, uint256 amount, , ) = extensionZeroMin.joinInfo(poorUser.userAddress);
+        (, uint256 amount, , ) = extensionZeroMin.joinInfo(
+            poorUser.userAddress
+        );
         assertEq(amount, lpAmount);
     }
 }
-

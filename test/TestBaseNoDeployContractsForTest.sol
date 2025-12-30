@@ -81,9 +81,6 @@ abstract contract TestBaseNoDeployContractsForTest is Test {
     }
 
     function burnForParentToken(FlowUserParams memory p) public {
-        ILOVE20Token token = ILOVE20Token(p.tokenAddress);
-        IERC20 parentToken = IERC20(token.parentTokenAddress());
-
         uint256 balance = IERC20(p.tokenAddress).balanceOf(p.userAddress);
         vm.startPrank(p.userAddress);
         ILOVE20Token(p.tokenAddress).burnForParentToken(balance);
