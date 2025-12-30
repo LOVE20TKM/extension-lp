@@ -5,6 +5,10 @@ import {Test} from "forge-std/Test.sol";
 import {
     DeployContractsForTestIntegration
 } from "./DeployContractsForTestIntegration.s.sol";
+import {
+    TestBaseNoDeployContractsForTest,
+    FlowUserParams
+} from "./TestBaseNoDeployContractsForTest.sol";
 import {ExtensionCenter} from "@extension/src/ExtensionCenter.sol";
 import {ExtensionFactoryLp} from "../src/ExtensionFactoryLp.sol";
 import {ExtensionLp} from "../src/ExtensionLp.sol";
@@ -27,49 +31,30 @@ import {
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Factory.sol";
 import {ILOVE20Submit} from "@core/interfaces/ILOVE20Submit.sol";
 import {IMintable} from "@extension/lib/core/test/TestERC20.sol";
+import {IETH20} from "@extension/lib/core/src/WETH/IETH20.sol";
 import {
-    TestLaunchHelper
-} from "@extension/lib/core/test/helper/TestLaunchHelper.sol";
-import {
-    TestStakeHelper
-} from "@extension/lib/core/test/helper/TestStakeHelper.sol";
-import {
-    TestSubmitHelper
-} from "@extension/lib/core/test/helper/TestSubmitHelper.sol";
-import {
-    TestVoteHelper
-} from "@extension/lib/core/test/helper/TestVoteHelper.sol";
-import {
-    TestJoinHelper
-} from "@extension/lib/core/test/helper/TestJoinHelper.sol";
-import {
-    TestVerifyHelper
-} from "@extension/lib/core/test/helper/TestVerifyHelper.sol";
-import {
-    TestMintHelper
-} from "@extension/lib/core/test/helper/TestMintHelper.sol";
-import {
-    TestBaseHelper,
-    FlowUserParams
-} from "@extension/lib/core/test/TestBaseHelper.sol";
-import {TestFlowHelper} from "@extension/lib/core/test/TestFlowHelper.sol";
+    SECOND_HALF_MIN_BLOCKS,
+    FIRST_PARENT_TOKEN_FUNDRAISING_GOAL
+} from "@extension/lib/core/test/Constant.sol";
 
-contract TestExtensionLpHelper is TestFlowHelper {
+contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
     DeployContractsForTestIntegration public contractsIntegration;
     ExtensionCenter public extensionCenter;
     ExtensionFactoryLp public extensionFactory;
     mapping(address => ExtensionLp) public extensionsByToken;
+
+    FlowUserParams public bob;
+    FlowUserParams public alice;
 
     uint256 public constant DEFAULT_WAITING_BLOCKS = 7;
     uint256 public constant DEFAULT_GOV_RATIO_MULTIPLIER = 2;
     uint256 public constant DEFAULT_MIN_GOV_VOTES = 1e18;
 
     constructor() {
-        // Skip parent constructor initialization by calling our own setup
-        // This prevents the parent constructor from calling DeployContractsForTest
+        // Parent constructor will call _setUp() which triggers DeployContractsForTest
+        // But we override by setting up our own contracts after
         _setUpIntegration();
         _testContractsDeployedIntegration();
-
         // Deploy ExtensionCenter with real LOVE20 contracts
         extensionCenter = new ExtensionCenter(
             contractsIntegration.uniswapV2FactoryAddress(),
@@ -424,32 +409,11 @@ contract TestExtensionLpHelper is TestFlowHelper {
         );
     }
 
-    // Override submit_new_action to skip canJoin check when whiteListAddress is extension address
-    // This is needed because extensions use whiteListAddress to identify themselves,
-    // but users join through extension, not directly through LOVE20Join
-    // We can't override the parent function (it's not virtual), so we'll use a different approach:
-    // Temporarily set whiteListAddress to address(0) for the check, then restore it
+    /// @notice Submit a new action with extension address as whiteListAddress
     function submit_new_action_with_extension(
         FlowUserParams memory p,
         address extensionAddress
     ) public returns (uint256 actionId) {
-        // Save original whiteListAddress
-        address originalWhiteListAddress = p.submit.whiteListAddress;
-
-        // Temporarily set to extension address for submission
-        p.submit.whiteListAddress = extensionAddress;
-
-        // Call parent submit_new_action, but it will fail canJoin check
-        // So we need to manually submit and skip the canJoin check
-        _beforeValues["actionNum"] = submitContract.actionsCount(
-            p.tokenAddress
-        );
-        _beforeValues["authorActionIdsLength"] = submitContract
-            .authorActionIdsCount(p.tokenAddress, p.userAddress);
-        _beforeValues["actionSubmitInfoLength"] = submitContract
-            .actionSubmitsCount(p.tokenAddress, submitContract.currentRound());
-
-        // submitNewAction
         ActionBody memory actionBody;
         actionBody.minStake = p.submit.minStake;
         actionBody.maxRandomAccounts = p.submit.maxRandomAccounts;
@@ -463,15 +427,113 @@ contract TestExtensionLpHelper is TestFlowHelper {
         actionId = submitContract.submitNewAction(p.tokenAddress, actionBody);
         vm.stopPrank();
 
-        // check (skip canJoin check since whiteListAddress is extension address)
-        _check_submit_new_action_infos(p, actionId, actionBody);
-        _check_submit_new_action_author(p, actionId);
-        _check_submit_action_functions(p, actionId, actionBody);
-        // Skip _check_submit_base which includes canJoin check
-
-        // Restore original whiteListAddress
-        p.submit.whiteListAddress = originalWhiteListAddress;
-
         return actionId;
+    }
+
+    // Copy from TestFlowHelper
+    function createUser(
+        string memory userName,
+        address tokenAddress,
+        uint256 mintAmountOfParentToken
+    ) public returns (FlowUserParams memory) {
+        address parentTokenAddress = ILOVE20Token(tokenAddress)
+            .parentTokenAddress();
+        address userAddress = makeAddr(userName);
+
+        FlowUserParams memory user;
+        // user
+        user.userName = userName;
+        user.userAddress = userAddress;
+        // default var
+        user.tokenAddress = tokenAddress;
+        user.actionId = 0;
+        // launch
+        user.launch.contributeParentTokenAmountPercent = 50;
+        user.launch.contributeParentTokenAmount = 0;
+        user.launch.contributeToAddress = userAddress;
+        // stake
+        user.stake.tokenAmountForLpPercent = 50;
+        user.stake.parentTokenAmountForLpPercent = 50;
+        user.stake.tokenAmountPercent = 50;
+        user.stake.promisedWaitingPhases = 4;
+        // submit
+        user.submit.minStake = 100;
+        user.submit.maxRandomAccounts = 3;
+        user.submit.whiteListAddress = address(0);
+        user.submit.title = "default title";
+        user.submit.verificationRule = "default verificationRule";
+        user.submit.verificationKeys = new string[](1);
+        user.submit.verificationKeys[0] = "default";
+        user.submit.verificationInfoGuides = new string[](1);
+        user.submit.verificationInfoGuides[0] = "default verificationInfoGuide";
+        // vote
+        user.vote.votePercent = 100;
+        // join
+        user.join.tokenAmountPercent = 50;
+        user.join.additionalTokenAmountPercent = 50;
+        user.join.verificationInfos = new string[](1);
+        user.join.verificationInfos[0] = "default verificationInfo";
+        user.join.updateVerificationInfos = new string[](1);
+        user.join.updateVerificationInfos[0] = "updated verificationInfo";
+        user.join.rounds = 4;
+        // verify
+        user.verify.scorePercent = 50;
+
+        if (parentTokenAddress == rootParentTokenAddress) {
+            vm.deal(user.userAddress, mintAmountOfParentToken);
+            vm.startPrank(user.userAddress);
+            IETH20(rootParentTokenAddress).deposit{
+                value: mintAmountOfParentToken
+            }();
+            vm.stopPrank();
+        } else {
+            forceMint(
+                parentTokenAddress,
+                user.userAddress,
+                mintAmountOfParentToken
+            );
+        }
+
+        return user;
+    }
+
+    function getUserBob() public view returns (FlowUserParams memory) {
+        return bob;
+    }
+
+    function getUserAlice() public view returns (FlowUserParams memory) {
+        return alice;
+    }
+
+    function jump_second_half_min() public {
+        vm.roll(block.number + SECOND_HALF_MIN_BLOCKS);
+    }
+
+    function finish_launch()
+        public
+        returns (FlowUserParams memory user1, FlowUserParams memory user2)
+    {
+        bob = createUser(
+            "bob",
+            firstTokenAddress,
+            FIRST_PARENT_TOKEN_FUNDRAISING_GOAL
+        );
+        alice = createUser(
+            "alice",
+            firstTokenAddress,
+            FIRST_PARENT_TOKEN_FUNDRAISING_GOAL
+        );
+
+        launch_contribute(bob);
+
+        jump_second_half_min(); // make sure the second half min is reached
+        launch_contribute(alice);
+
+        launch_skip_claim_delay();
+
+        launch_claim(bob);
+        launch_claim(alice);
+
+        return (bob, alice);
     }
 }
