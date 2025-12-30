@@ -1,18 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-import {
-    ILOVE20ExtensionFactoryLp
-} from "./interface/ILOVE20ExtensionFactoryLp.sol";
-import {
-    LOVE20ExtensionFactoryBase
-} from "@extension/src/LOVE20ExtensionFactoryBase.sol";
-import {LOVE20ExtensionLp} from "./LOVE20ExtensionLp.sol";
+import {IExtensionFactoryLp} from "./interface/IExtensionFactoryLp.sol";
+import {ExtensionFactoryBase} from "@extension/src/ExtensionFactoryBase.sol";
+import {ExtensionLp} from "./ExtensionLp.sol";
 
-contract LOVE20ExtensionFactoryLp is
-    LOVE20ExtensionFactoryBase,
-    ILOVE20ExtensionFactoryLp
-{
+contract ExtensionFactoryLp is ExtensionFactoryBase, IExtensionFactoryLp {
     // ============================================
     // STATE VARIABLES
     // ============================================
@@ -24,7 +17,7 @@ contract LOVE20ExtensionFactoryLp is
     // CONSTRUCTOR
     // ============================================
 
-    constructor(address _center) LOVE20ExtensionFactoryBase(_center) {}
+    constructor(address _center) ExtensionFactoryBase(_center) {}
 
     // ============================================
     // Lp FACTORY FUNCTIONS
@@ -42,7 +35,7 @@ contract LOVE20ExtensionFactoryLp is
         }
 
         extension = address(
-            new LOVE20ExtensionLp(
+            new ExtensionLp(
                 address(this),
                 tokenAddress,
                 joinTokenAddress,
@@ -76,7 +69,7 @@ contract LOVE20ExtensionFactoryLp is
         return extension;
     }
 
-    /// @inheritdoc ILOVE20ExtensionFactoryLp
+    /// @inheritdoc IExtensionFactoryLp
     function extensionParams(
         address extension
     )

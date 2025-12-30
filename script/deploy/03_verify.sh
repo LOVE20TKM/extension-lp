@@ -45,7 +45,7 @@ verify_contract(){
 }
 echo "verify_contract() loaded"
 
-# Verify LOVE20ExtensionFactoryLp
+# Verify ExtensionFactoryLp
 constructor_args=$(cast abi-encode "constructor(address)" $centerAddress)
-verify_contract $extensionFactoryLpAddress "LOVE20ExtensionFactoryLp" "src/LOVE20ExtensionFactoryLp.sol" "$constructor_args"
+verify_contract $extensionFactoryLpAddress "ExtensionFactoryLp" "src/ExtensionFactoryLp.sol" "$constructor_args"
 

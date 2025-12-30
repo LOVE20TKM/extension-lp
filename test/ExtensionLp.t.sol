@@ -2,24 +2,24 @@
 pragma solidity =0.8.17;
 
 import {Test, console} from "forge-std/Test.sol";
-import {LOVE20ExtensionLp} from "../src/LOVE20ExtensionLp.sol";
-import {LOVE20ExtensionFactoryLp} from "../src/LOVE20ExtensionFactoryLp.sol";
-import {ILOVE20ExtensionLp} from "../src/interface/ILOVE20ExtensionLp.sol";
+import {ExtensionLp} from "../src/ExtensionLp.sol";
+import {ExtensionFactoryLp} from "../src/ExtensionFactoryLp.sol";
+import {IExtensionLp} from "../src/interface/IExtensionLp.sol";
 import {
-    ILOVE20ExtensionFactoryLp
-} from "../src/interface/ILOVE20ExtensionFactoryLp.sol";
-import {ILOVE20Extension} from "@extension/src/interface/ILOVE20Extension.sol";
+    IExtensionFactoryLp
+} from "../src/interface/IExtensionFactoryLp.sol";
+import {IExtension} from "@extension/src/interface/IExtension.sol";
 import {
-    ILOVE20ExtensionFactory
-} from "@extension/src/interface/ILOVE20ExtensionFactory.sol";
+    IExtensionFactory
+} from "@extension/src/interface/IExtensionFactory.sol";
 import {
-    ILOVE20ExtensionCenter
-} from "@extension/src/interface/ILOVE20ExtensionCenter.sol";
-import {LOVE20ExtensionCenter} from "@extension/src/LOVE20ExtensionCenter.sol";
+    IExtensionCenter
+} from "@extension/src/interface/IExtensionCenter.sol";
+import {ExtensionCenter} from "@extension/src/ExtensionCenter.sol";
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
-import {ITokenJoin} from "@extension/src/interface/base/ITokenJoin.sol";
+import {IExtensionTokenJoin} from "@extension/src/interface/IExtensionTokenJoin.sol";
 
 // Import mock contracts
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -35,7 +35,7 @@ import {MockVote} from "./mocks/MockVote.sol";
 import {MockRandom} from "./mocks/MockRandom.sol";
 
 /**
- * @title LOVE20ExtensionLp Test Suite
+ * @title ExtensionLp Test Suite
  * @notice Tests for LP-specific functionality
  * @dev This test suite focuses on LP-specific features:
  *      - LP token validation
@@ -44,10 +44,10 @@ import {MockRandom} from "./mocks/MockRandom.sol";
  *      - rewardInfoByAccount with mint/burn rewards
  *      - Factory with LP-specific parameters
  */
-contract LOVE20ExtensionLpTest is Test {
-    LOVE20ExtensionFactoryLp public factory;
-    LOVE20ExtensionLp public extension;
-    LOVE20ExtensionCenter public center;
+contract ExtensionLpTest is Test {
+    ExtensionFactoryLp public factory;
+    ExtensionLp public extension;
+    ExtensionCenter public center;
     MockERC20 public token;
     MockUniswapV2Pair public joinToken;
     MockStake public stake;
@@ -86,8 +86,8 @@ contract LOVE20ExtensionLpTest is Test {
         vote = new MockVote();
         random = new MockRandom();
 
-        // Deploy real LOVE20ExtensionCenter
-        center = new LOVE20ExtensionCenter(
+        // Deploy real ExtensionCenter
+        center = new ExtensionCenter(
             address(uniswapFactory),
             address(launch),
             address(stake),
@@ -100,14 +100,14 @@ contract LOVE20ExtensionLpTest is Test {
         );
 
         // Deploy factory
-        factory = new LOVE20ExtensionFactoryLp(address(center));
+        factory = new ExtensionFactoryLp(address(center));
 
         // Mint and approve tokens for extension creation
         token.mint(address(this), 1e18);
         token.approve(address(factory), 1e18);
 
         // Create extension
-        extension = LOVE20ExtensionLp(
+        extension = ExtensionLp(
             factory.createExtension(
                 address(token),
                 address(joinToken),
@@ -162,7 +162,7 @@ contract LOVE20ExtensionLpTest is Test {
     function test_Initialize_RevertIfInvalidJoinTokenAddress() public {
         MockERC20 invalidStakeToken = new MockERC20();
 
-        vm.expectRevert(ITokenJoin.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(IExtensionTokenJoin.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(invalidStakeToken),
@@ -183,7 +183,7 @@ contract LOVE20ExtensionLpTest is Test {
             uniswapFactory.createPair(address(token1), address(token2))
         );
 
-        vm.expectRevert(ITokenJoin.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(IExtensionTokenJoin.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(wrongPair),
@@ -502,7 +502,7 @@ contract LOVE20ExtensionLpTest is Test {
 
     function test_Factory_RevertIfInvalidJoinTokenAddress() public {
         vm.expectRevert(
-            ILOVE20ExtensionFactoryLp.InvalidJoinTokenAddress.selector
+            IExtensionFactoryLp.InvalidJoinTokenAddress.selector
         );
         factory.createExtension(
             address(token),
@@ -526,7 +526,7 @@ contract LOVE20ExtensionLpTest is Test {
         stake.setValidGovVotes(address(token), poorUser, MIN_GOV_VOTES - 1);
 
         vm.prank(poorUser);
-        vm.expectRevert(ILOVE20ExtensionLp.InsufficientGovVotes.selector);
+        vm.expectRevert(IExtensionLp.InsufficientGovVotes.selector);
         extension.join(100e18, new string[](0));
     }
 

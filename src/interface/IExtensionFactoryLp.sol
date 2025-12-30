@@ -2,10 +2,10 @@
 pragma solidity =0.8.17;
 
 import {
-    ILOVE20ExtensionFactory
-} from "@extension/src/interface/ILOVE20ExtensionFactory.sol";
+    IExtensionFactory
+} from "@extension/src/interface/IExtensionFactory.sol";
 
-interface ILOVE20ExtensionFactoryLp is ILOVE20ExtensionFactory {
+interface IExtensionFactoryLp is IExtensionFactory {
     /// @notice Extension creation parameters
     struct ExtensionParams {
         address tokenAddress; // Token address

@@ -1,19 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-import {ILOVE20ExtensionLp} from "./interface/ILOVE20ExtensionLp.sol";
+import {IExtensionLp} from "./interface/IExtensionLp.sol";
 import {
-    LOVE20ExtensionBaseTokenJoin
-} from "@extension/src/LOVE20ExtensionBaseTokenJoin.sol";
-import {TokenJoin} from "@extension/src/base/TokenJoin.sol";
-import {ExtensionReward} from "@extension/src/base/ExtensionReward.sol";
+    ExtensionBaseTokenJoin
+} from "@extension/src/ExtensionBaseTokenJoin.sol";
 import {
-    IExtensionReward
-} from "@extension/src/interface/base/IExtensionReward.sol";
-import {ITokenJoin} from "@extension/src/interface/base/ITokenJoin.sol";
-import {
-    ILOVE20ExtensionCenter
-} from "@extension/src/interface/ILOVE20ExtensionCenter.sol";
+    IExtensionTokenJoin
+} from "@extension/src/interface/IExtensionTokenJoin.sol";
+import {IExtensionCenter} from "@extension/src/interface/IExtensionCenter.sol";
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
@@ -23,11 +18,12 @@ import {
     SafeERC20
 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
+import {ILOVE20Stake} from "@core/interfaces/ILOVE20Stake.sol";
 
 using RoundHistoryUint256 for RoundHistoryUint256.History;
 using SafeERC20 for IERC20;
 
-contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
+contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
     // ============================================
     // STATE VARIABLES
     // ============================================
@@ -36,6 +32,9 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
 
     uint256 public immutable govRatioMultiplier;
     uint256 public immutable minGovVotes;
+
+    /// @notice The stake contract address
+    ILOVE20Stake internal immutable _stake;
 
     /// @dev round => account => burnReward (recorded at claim time)
     mapping(uint256 => mapping(address => uint256)) internal _burnReward;
@@ -48,7 +47,7 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
         uint256 govRatioMultiplier_,
         uint256 minGovVotes_
     )
-        LOVE20ExtensionBaseTokenJoin(
+        ExtensionBaseTokenJoin(
             factory_,
             tokenAddress_,
             joinTokenAddress_,
@@ -57,13 +56,14 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
     {
         govRatioMultiplier = govRatioMultiplier_;
         minGovVotes = minGovVotes_;
+        _stake = ILOVE20Stake(_center.stakeAddress());
         _validateJoinToken();
     }
 
     function join(
         uint256 amount,
         string[] memory verificationInfos
-    ) public virtual override(ITokenJoin, TokenJoin) {
+    ) public virtual override(ExtensionBaseTokenJoin, IExtensionTokenJoin) {
         bool isFirstJoin = _joinedBlockByAccount[msg.sender] == 0;
 
         // Check minimum governance votes requirement only on first join
@@ -73,7 +73,7 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
                 msg.sender
             );
             if (userGovVotes < minGovVotes) {
-                revert ILOVE20ExtensionLp.InsufficientGovVotes();
+                revert IExtensionLp.InsufficientGovVotes();
             }
         }
 
@@ -82,37 +82,37 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
     }
 
     function _validateJoinToken() internal view {
-        address uniswapV2FactoryAddress = ILOVE20ExtensionCenter(center())
+        address uniswapV2FactoryAddress = IExtensionCenter(center())
             .uniswapV2FactoryAddress();
 
         try IUniswapV2Pair(joinTokenAddress).factory() returns (
             address pairFactory
         ) {
             if (pairFactory != uniswapV2FactoryAddress) {
-                revert ITokenJoin.InvalidJoinTokenAddress();
+                revert IExtensionTokenJoin.InvalidJoinTokenAddress();
             }
         } catch {
-            revert ITokenJoin.InvalidJoinTokenAddress();
+            revert IExtensionTokenJoin.InvalidJoinTokenAddress();
         }
         address pairToken0;
         address pairToken1;
         try IUniswapV2Pair(joinTokenAddress).token0() returns (address token0) {
             pairToken0 = token0;
         } catch {
-            revert ITokenJoin.InvalidJoinTokenAddress();
+            revert IExtensionTokenJoin.InvalidJoinTokenAddress();
         }
         try IUniswapV2Pair(joinTokenAddress).token1() returns (address token1) {
             pairToken1 = token1;
         } catch {
-            revert ITokenJoin.InvalidJoinTokenAddress();
+            revert IExtensionTokenJoin.InvalidJoinTokenAddress();
         }
         if (pairToken0 != tokenAddress && pairToken1 != tokenAddress) {
-            revert ITokenJoin.InvalidJoinTokenAddress();
+            revert IExtensionTokenJoin.InvalidJoinTokenAddress();
         }
     }
 
     // ============================================
-    // ILOVE20EXTENSION INTERFACE IMPLEMENTATION
+    // IEXTENSION INTERFACE IMPLEMENTATION
     // ============================================
 
     function isJoinedValueCalculated() external pure returns (bool) {
@@ -243,7 +243,7 @@ contract LOVE20ExtensionLp is LOVE20ExtensionBaseTokenJoin, ILOVE20ExtensionLp {
 
         if (burnReward > 0) {
             ILOVE20Token(tokenAddress).burn(burnReward);
-            emit ILOVE20ExtensionLp.BurnReward(
+            emit IExtensionLp.BurnReward(
                 tokenAddress,
                 round,
                 actionId,

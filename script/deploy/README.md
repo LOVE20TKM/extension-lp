@@ -1,6 +1,6 @@
-# LOVE20 Extension Factory Lp Deployment Scripts
+# Extension Factory Lp Deployment Scripts
 
-一键部署和验证 LOVE20ExtensionFactoryLp 合约的脚本集合。
+一键部署和验证 ExtensionFactoryLp 合约的脚本集合。
 
 ## 📁 脚本说明
 
@@ -20,7 +20,7 @@
 自动完成以下步骤：
 
 1. 初始化环境
-2. 部署 LOVE20ExtensionFactoryLp 合约
+2. 部署 ExtensionFactoryLp 合约
 3. 验证合约（仅 thinkium70001 网络）
 4. 运行部署检查
 
@@ -139,7 +139,7 @@ ls ../network/
 [Step 1/4] Initializing environment...
 ✓ Environment initialized
 
-[Step 2/4] Deploying LOVE20ExtensionFactoryLp...
+[Step 2/4] Deploying ExtensionFactoryLp...
 ✓ Extension Factory Lp deployed at: 0x59b670e9fA9D0A427751Af201D676719a970857b
 
 [Step 3/4] Skipping contract verification (not a thinkium network)
@@ -192,7 +192,7 @@ Error: centerAddress not found
 
 ## 📚 相关文件
 
-- 部署脚本：`script/DeployLOVE20ExtensionFactoryLp.s.sol`
-- 合约源码：`src/LOVE20ExtensionFactoryLp.sol`
-- Extension 合约：`src/LOVE20ExtensionLp.sol`
+- 部署脚本：`script/DeployExtensionFactoryLp.s.sol`
+- 合约源码：`src/ExtensionFactoryLp.sol`
+- Extension 合约：`src/ExtensionLp.sol`
 - Foundry 配置：`foundry.toml`

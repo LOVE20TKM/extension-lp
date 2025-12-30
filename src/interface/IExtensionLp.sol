@@ -2,10 +2,10 @@
 pragma solidity =0.8.17;
 
 import {
-    ILOVE20ExtensionTokenJoin
-} from "@extension/src/interface/ILOVE20ExtensionTokenJoin.sol";
+    IExtensionTokenJoin
+} from "@extension/src/interface/IExtensionTokenJoin.sol";
 
-interface ILOVE20ExtensionLp is ILOVE20ExtensionTokenJoin {
+interface IExtensionLp is IExtensionTokenJoin {
     // Lp-specific errors (InvalidJoinTokenAddress is inherited from ITokenJoin)
     error InsufficientGovVotes();
 

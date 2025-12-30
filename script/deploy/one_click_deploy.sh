@@ -17,8 +17,8 @@ source 00_init.sh $network || {
 echo -e "\033[32m✓\033[0m Environment initialized"
 echo ""
 
-# Step 2: Deploy LOVE20ExtensionFactoryLp
-echo "[Step 2/4] Deploying LOVE20ExtensionFactoryLp..."
+# Step 2: Deploy ExtensionFactoryLp
+echo "[Step 2/4] Deploying ExtensionFactoryLp..."
 forge_script_deploy_extension_factory_lp || {
     echo -e "\033[31mError:\033[0m Deployment failed"
     return 1
