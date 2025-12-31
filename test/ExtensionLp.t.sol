@@ -201,8 +201,8 @@ contract ExtensionLpTest is Test {
         assertEq(extension.WAITING_BLOCKS(), WAITING_BLOCKS);
     }
 
-    function test_IsJoinedValueCalculated() public view {
-        assertTrue(extension.isJoinedValueCalculated());
+    function test_isJoinedValueConverted() public view {
+        assertTrue(extension.isJoinedValueConverted());
     }
 
     // ============================================
