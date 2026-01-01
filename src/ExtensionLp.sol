@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
+import {ExtensionCore} from "@extension/src/ExtensionCore.sol";
+import {IExtensionCore} from "@extension/src/interface/IExtensionCore.sol";
 import {IExtensionLp} from "./interface/IExtensionLp.sol";
 import {
     ExtensionBaseTokenJoin
@@ -104,7 +106,12 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
         }
     }
 
-    function isJoinedValueConverted() external pure returns (bool) {
+    function isJoinedValueConverted()
+        external
+        view
+        override(ExtensionCore, IExtensionCore)
+        returns (bool)
+    {
         return true;
     }
 
@@ -132,13 +139,18 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
         return (lpAmount * tokenReserve) / totalLp;
     }
 
-    function joinedValue() external view returns (uint256) {
+    function joinedValue()
+        external
+        view
+        override(ExtensionCore, IExtensionCore)
+        returns (uint256)
+    {
         return _lpToTokenAmount(totalJoinedAmount());
     }
 
     function joinedValueByAccount(
         address account
-    ) external view returns (uint256) {
+    ) external view override(ExtensionCore, IExtensionCore) returns (uint256) {
         return _lpToTokenAmount(_amountHistoryByAccount[account].latestValue());
     }
 
