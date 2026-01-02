@@ -108,7 +108,7 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
 
     function isJoinedValueConverted()
         external
-        view
+        pure
         override(ExtensionCore, IExtensionCore)
         returns (bool)
     {
