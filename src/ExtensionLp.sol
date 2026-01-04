@@ -6,7 +6,6 @@ import {ILp} from "./interface/ILp.sol";
 import {
     ExtensionBaseRewardTokenJoin
 } from "@extension/src/ExtensionBaseRewardTokenJoin.sol";
-import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
@@ -50,7 +49,6 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         GOV_RATIO_MULTIPLIER = govRatioMultiplier_;
         MIN_GOV_VOTES = minGovVotes_;
         _stake = ILOVE20Stake(_center.stakeAddress());
-        _validateJoinToken();
     }
 
     function join(
@@ -70,39 +68,6 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         }
 
         super.join(amount, verificationInfos);
-    }
-
-    function _validateJoinToken() internal view {
-        address uniswapV2FactoryAddress = _center.uniswapV2FactoryAddress();
-
-        try IUniswapV2Pair(JOIN_TOKEN_ADDRESS).factory() returns (
-            address pairFactory
-        ) {
-            if (pairFactory != uniswapV2FactoryAddress) {
-                revert ITokenJoin.InvalidJoinTokenAddress();
-            }
-        } catch {
-            revert ITokenJoin.InvalidJoinTokenAddress();
-        }
-        address pairToken0;
-        address pairToken1;
-        try IUniswapV2Pair(JOIN_TOKEN_ADDRESS).token0() returns (
-            address token0
-        ) {
-            pairToken0 = token0;
-        } catch {
-            revert ITokenJoin.InvalidJoinTokenAddress();
-        }
-        try IUniswapV2Pair(JOIN_TOKEN_ADDRESS).token1() returns (
-            address token1
-        ) {
-            pairToken1 = token1;
-        } catch {
-            revert ITokenJoin.InvalidJoinTokenAddress();
-        }
-        if (pairToken0 != TOKEN_ADDRESS && pairToken1 != TOKEN_ADDRESS) {
-            revert ITokenJoin.InvalidJoinTokenAddress();
-        }
     }
 
     function isJoinedValueConverted()
