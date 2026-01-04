@@ -6,7 +6,6 @@ import {ExtensionLp} from "../src/ExtensionLp.sol";
 import {ExtensionFactoryLp} from "../src/ExtensionFactoryLp.sol";
 import {IExtensionLp} from "../src/interface/IExtensionLp.sol";
 import {IExtensionFactoryLp} from "../src/interface/IExtensionFactoryLp.sol";
-import {IExtension} from "@extension/src/interface/IExtension.sol";
 import {
     IExtensionFactory
 } from "@extension/src/interface/IExtensionFactory.sol";
@@ -15,9 +14,7 @@ import {ExtensionCenter} from "@extension/src/ExtensionCenter.sol";
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
-import {
-    IExtensionTokenJoin
-} from "@extension/src/interface/IExtensionTokenJoin.sol";
+import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
 
 // Import mock contracts
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -160,7 +157,7 @@ contract ExtensionLpTest is Test {
     function test_Initialize_RevertIfInvalidJoinTokenAddress() public {
         MockERC20 invalidStakeToken = new MockERC20();
 
-        vm.expectRevert(IExtensionTokenJoin.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ITokenJoin.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(invalidStakeToken),
@@ -181,7 +178,7 @@ contract ExtensionLpTest is Test {
             uniswapFactory.createPair(address(token1), address(token2))
         );
 
-        vm.expectRevert(IExtensionTokenJoin.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ITokenJoin.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(wrongPair),
@@ -457,7 +454,7 @@ contract ExtensionLpTest is Test {
         extension.join(10e18, new string[](0));
 
         assertEq(
-            extension.tokenAddress(),
+            extension.TOKEN_ADDRESS(),
             address(token),
             "tokenAddr mismatch"
         );
@@ -485,7 +482,7 @@ contract ExtensionLpTest is Test {
     }
 
     function test_Factory_Center() public view {
-        assertEq(factory.center(), address(center));
+        assertEq(factory.CENTER_ADDRESS(), address(center));
     }
 
     function test_Factory_RevertIfInvalidJoinTokenAddress() public {

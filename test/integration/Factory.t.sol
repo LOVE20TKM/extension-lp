@@ -2,13 +2,18 @@
 pragma solidity =0.8.17;
 
 import {Test} from "forge-std/Test.sol";
-import {TestExtensionLpHelper, FlowUserParams} from "../TestExtensionLpHelper.sol";
+import {
+    TestExtensionLpHelper,
+    FlowUserParams
+} from "../TestExtensionLpHelper.sol";
 import {ExtensionFactoryLp} from "../../src/ExtensionFactoryLp.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
 import {IExtensionFactoryLp} from "../../src/interface/IExtensionFactoryLp.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {FIRST_PARENT_TOKEN_FUNDRAISING_GOAL} from "@extension/lib/core/test/Constant.sol";
+import {
+    FIRST_PARENT_TOKEN_FUNDRAISING_GOAL
+} from "@extension/lib/core/test/Constant.sol";
 
 contract FactoryTest is Test {
     TestExtensionLpHelper public h;
@@ -23,39 +28,20 @@ contract FactoryTest is Test {
     }
 
     function test_factory_createExtension() public {
-        ExtensionLp extension = h.createExtension(
-            tokenAddress,
-            7,
-            2,
-            1e18
-        );
+        ExtensionLp extension = h.createExtension(tokenAddress, 7, 2, 1e18);
 
         ExtensionFactoryLp factory = h.extensionFactory();
         assertTrue(
             factory.exists(address(extension)),
             "Extension should exist in factory"
         );
-        assertEq(
-            factory.extensionsCount(),
-            1,
-            "Extensions count should be 1"
-        );
+        assertEq(factory.extensionsCount(), 1, "Extensions count should be 1");
     }
 
     function test_factory_createMultipleExtensions() public {
-        ExtensionLp extension1 = h.createExtension(
-            tokenAddress,
-            7,
-            2,
-            1e18
-        );
+        ExtensionLp extension1 = h.createExtension(tokenAddress, 7, 2, 1e18);
 
-        ExtensionLp extension2 = h.createExtension(
-            tokenAddress,
-            10,
-            3,
-            2e18
-        );
+        ExtensionLp extension2 = h.createExtension(tokenAddress, 10, 3, 2e18);
 
         ExtensionFactoryLp factory = h.extensionFactory();
         assertTrue(
@@ -66,11 +52,7 @@ contract FactoryTest is Test {
             factory.exists(address(extension2)),
             "Extension2 should exist"
         );
-        assertEq(
-            factory.extensionsCount(),
-            2,
-            "Extensions count should be 2"
-        );
+        assertEq(factory.extensionsCount(), 2, "Extensions count should be 2");
     }
 
     function test_factory_extensionParams() public {
@@ -86,7 +68,7 @@ contract FactoryTest is Test {
         );
 
         assertEq(
-            extension.tokenAddress(),
+            extension.TOKEN_ADDRESS(),
             tokenAddress,
             "tokenAddress should match"
         );
@@ -119,8 +101,16 @@ contract FactoryTest is Test {
         ExtensionFactoryLp factory = h.extensionFactory();
         address[] memory extensions = factory.extensions();
         assertEq(extensions.length, 2, "Should have 2 extensions");
-        assertEq(extensions[0], address(extension1), "First extension should match");
-        assertEq(extensions[1], address(extension2), "Second extension should match");
+        assertEq(
+            extensions[0],
+            address(extension1),
+            "First extension should match"
+        );
+        assertEq(
+            extensions[1],
+            address(extension2),
+            "Second extension should match"
+        );
     }
 
     function test_factory_extensionsAtIndex() public {
@@ -155,7 +145,7 @@ contract FactoryTest is Test {
     function test_factory_center() public view {
         ExtensionFactoryLp factory = h.extensionFactory();
         assertEq(
-            factory.center(),
+            factory.CENTER_ADDRESS(),
             address(h.extensionCenter()),
             "Center should match"
         );
@@ -163,13 +153,18 @@ contract FactoryTest is Test {
 
     function test_factory_differentTokens() public {
         // Create extension for parent token first
-        ExtensionLp parentExtension = h.createExtensionWithDefaults(tokenAddress);
+        ExtensionLp parentExtension = h.createExtensionWithDefaults(
+            tokenAddress
+        );
         address parentExtensionAddr = address(parentExtension);
-        
+
         // Create child token
         h.stake_liquidity(bob);
         h.stake_token(bob);
-        bob.actionId = h.submit_new_action_with_extension(bob, parentExtensionAddr);
+        bob.actionId = h.submit_new_action_with_extension(
+            bob,
+            parentExtensionAddr
+        );
         h.vote(bob);
 
         h.next_phase();
@@ -208,4 +203,3 @@ contract FactoryTest is Test {
         );
     }
 }
-

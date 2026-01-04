@@ -7,9 +7,7 @@ import {IExtensionLp} from "./interface/IExtensionLp.sol";
 import {
     ExtensionBaseTokenJoin
 } from "@extension/src/ExtensionBaseTokenJoin.sol";
-import {
-    IExtensionTokenJoin
-} from "@extension/src/interface/IExtensionTokenJoin.sol";
+import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
 import {IExtensionCenter} from "@extension/src/interface/IExtensionCenter.sol";
 import {
     IUniswapV2Pair
@@ -60,12 +58,12 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
     function join(
         uint256 amount,
         string[] memory verificationInfos
-    ) public virtual override(ExtensionBaseTokenJoin, IExtensionTokenJoin) {
+    ) public virtual override(ExtensionBaseTokenJoin, ITokenJoin) {
         bool isFirstJoin = _joinedBlockByAccount[msg.sender] == 0;
 
         if (isFirstJoin) {
             uint256 userGovVotes = _stake.validGovVotes(
-                tokenAddress,
+                TOKEN_ADDRESS,
                 msg.sender
             );
             if (userGovVotes < MIN_GOV_VOTES) {
@@ -77,39 +75,38 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
     }
 
     function _validateJoinToken() internal view {
-        address uniswapV2FactoryAddress = IExtensionCenter(center())
-            .uniswapV2FactoryAddress();
+        address uniswapV2FactoryAddress = _center.uniswapV2FactoryAddress();
 
         try IUniswapV2Pair(joinTokenAddress).factory() returns (
             address pairFactory
         ) {
             if (pairFactory != uniswapV2FactoryAddress) {
-                revert IExtensionTokenJoin.InvalidJoinTokenAddress();
+                revert ITokenJoin.InvalidJoinTokenAddress();
             }
         } catch {
-            revert IExtensionTokenJoin.InvalidJoinTokenAddress();
+            revert ITokenJoin.InvalidJoinTokenAddress();
         }
         address pairToken0;
         address pairToken1;
         try IUniswapV2Pair(joinTokenAddress).token0() returns (address token0) {
             pairToken0 = token0;
         } catch {
-            revert IExtensionTokenJoin.InvalidJoinTokenAddress();
+            revert ITokenJoin.InvalidJoinTokenAddress();
         }
         try IUniswapV2Pair(joinTokenAddress).token1() returns (address token1) {
             pairToken1 = token1;
         } catch {
-            revert IExtensionTokenJoin.InvalidJoinTokenAddress();
+            revert ITokenJoin.InvalidJoinTokenAddress();
         }
-        if (pairToken0 != tokenAddress && pairToken1 != tokenAddress) {
-            revert IExtensionTokenJoin.InvalidJoinTokenAddress();
+        if (pairToken0 != TOKEN_ADDRESS && pairToken1 != TOKEN_ADDRESS) {
+            revert ITokenJoin.InvalidJoinTokenAddress();
         }
     }
 
     function isJoinedValueConverted()
         external
         pure
-        override(ExtensionCore, IExtensionCore)
+        override(ExtensionCore)
         returns (bool)
     {
         return true;
@@ -132,7 +129,7 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
         }
 
         address pairToken0 = pair.token0();
-        uint256 tokenReserve = (pairToken0 == tokenAddress)
+        uint256 tokenReserve = (pairToken0 == TOKEN_ADDRESS)
             ? uint256(reserve0)
             : uint256(reserve1);
 
@@ -142,7 +139,7 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
     function joinedValue()
         external
         view
-        override(ExtensionCore, IExtensionCore)
+        override(ExtensionCore)
         returns (uint256)
     {
         return _lpToTokenAmount(totalJoinedAmount());
@@ -150,7 +147,7 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
 
     function joinedValueByAccount(
         address account
-    ) external view override(ExtensionCore, IExtensionCore) returns (uint256) {
+    ) external view override(ExtensionCore) returns (uint256) {
         return _lpToTokenAmount(_amountHistoryByAccount[account].latestValue());
     }
 
@@ -163,7 +160,7 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
         }
 
         (uint256 totalActionReward, ) = _mint.actionRewardByActionIdByAccount(
-            tokenAddress,
+            TOKEN_ADDRESS,
             round,
             actionId,
             address(this)
@@ -186,11 +183,11 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
 
         uint256 ratio = tokenRatio;
         if (GOV_RATIO_MULTIPLIER > 0) {
-            uint256 totalGovVotes = _stake.govVotesNum(tokenAddress);
+            uint256 totalGovVotes = _stake.govVotesNum(TOKEN_ADDRESS);
             if (totalGovVotes == 0) {
                 return (0, 0);
             }
-            uint256 govVotes = _stake.validGovVotes(tokenAddress, account);
+            uint256 govVotes = _stake.validGovVotes(TOKEN_ADDRESS, account);
             uint256 govVotesRatio = (govVotes *
                 LP_RATIO_PRECISION *
                 GOV_RATIO_MULTIPLIER) / totalGovVotes;
@@ -230,13 +227,13 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
         _burnReward[round][msg.sender] = burnReward;
 
         if (amount > 0) {
-            IERC20(tokenAddress).safeTransfer(msg.sender, amount);
+            IERC20(TOKEN_ADDRESS).safeTransfer(msg.sender, amount);
         }
 
         if (burnReward > 0) {
-            ILOVE20Token(tokenAddress).burn(burnReward);
+            ILOVE20Token(TOKEN_ADDRESS).burn(burnReward);
             emit IExtensionLp.BurnReward(
-                tokenAddress,
+                TOKEN_ADDRESS,
                 round,
                 actionId,
                 msg.sender,
@@ -244,7 +241,7 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
             );
         }
 
-        emit ClaimReward(tokenAddress, round, actionId, msg.sender, amount);
+        emit ClaimReward(TOKEN_ADDRESS, round, actionId, msg.sender, amount);
     }
 
     function rewardInfoByAccount(
