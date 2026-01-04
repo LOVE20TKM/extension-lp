@@ -5,8 +5,8 @@ import {ExtensionCore} from "@extension/src/ExtensionCore.sol";
 import {IExtensionCore} from "@extension/src/interface/IExtensionCore.sol";
 import {IExtensionLp} from "./interface/IExtensionLp.sol";
 import {
-    ExtensionBaseTokenJoin
-} from "@extension/src/ExtensionBaseTokenJoin.sol";
+    ExtensionBaseRewardTokenJoin
+} from "@extension/src/ExtensionBaseRewardTokenJoin.sol";
 import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
 import {IExtensionCenter} from "@extension/src/interface/IExtensionCenter.sol";
 import {
@@ -23,7 +23,7 @@ import {ILOVE20Stake} from "@core/interfaces/ILOVE20Stake.sol";
 using RoundHistoryUint256 for RoundHistoryUint256.History;
 using SafeERC20 for IERC20;
 
-contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
+contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
     uint256 internal constant LP_RATIO_PRECISION = 1e18;
 
     uint256 public immutable GOV_RATIO_MULTIPLIER;
@@ -42,7 +42,7 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
         uint256 govRatioMultiplier_,
         uint256 minGovVotes_
     )
-        ExtensionBaseTokenJoin(
+        ExtensionBaseRewardTokenJoin(
             factory_,
             tokenAddress_,
             joinTokenAddress_,
@@ -58,7 +58,7 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
     function join(
         uint256 amount,
         string[] memory verificationInfos
-    ) public virtual override(ExtensionBaseTokenJoin, ITokenJoin) {
+    ) public virtual override(ExtensionBaseRewardTokenJoin, ITokenJoin) {
         bool isFirstJoin = _joinedBlockByAccount[msg.sender] == 0;
 
         if (isFirstJoin) {
@@ -67,7 +67,7 @@ contract ExtensionLp is ExtensionBaseTokenJoin, IExtensionLp {
                 msg.sender
             );
             if (userGovVotes < MIN_GOV_VOTES) {
-                revert IExtensionLp.InsufficientGovVotes();
+                revert InsufficientGovVotes();
             }
         }
 
