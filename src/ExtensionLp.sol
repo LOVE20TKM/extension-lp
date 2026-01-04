@@ -22,7 +22,7 @@ using RoundHistoryUint256 for RoundHistoryUint256.History;
 using SafeERC20 for IERC20;
 
 contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
-    uint256 internal constant LP_RATIO_PRECISION = 1e18;
+    uint256 internal constant PRECISION = 1e18;
 
     uint256 public immutable GOV_RATIO_MULTIPLIER;
     uint256 public immutable MIN_GOV_VOTES;
@@ -179,9 +179,9 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             return (0, 0);
         }
 
-        uint256 tokenRatio = (joinedAmount * LP_RATIO_PRECISION) / totalJoined;
+        uint256 tokenRatio = (joinedAmount * PRECISION) / totalJoined;
         uint256 theoreticalReward = (totalActionReward * tokenRatio) /
-            LP_RATIO_PRECISION;
+            PRECISION;
 
         uint256 ratio = tokenRatio;
         if (GOV_RATIO_MULTIPLIER > 0) {
@@ -191,17 +191,19 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             }
             uint256 govVotes = _stake.validGovVotes(TOKEN_ADDRESS, account);
             uint256 govVotesRatio = (govVotes *
-                LP_RATIO_PRECISION *
+                PRECISION *
                 GOV_RATIO_MULTIPLIER) / totalGovVotes;
             if (govVotesRatio < tokenRatio) {
                 ratio = govVotesRatio;
             }
         }
 
-        mintReward = (totalActionReward * ratio) / LP_RATIO_PRECISION;
+        mintReward = (totalActionReward * ratio) / PRECISION;
         burnReward = theoreticalReward > mintReward
             ? theoreticalReward - mintReward
             : 0;
+
+        return (mintReward, burnReward);
     }
 
     function _calculateReward(
@@ -234,16 +236,22 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
 
         if (burnReward > 0) {
             ILOVE20Token(TOKEN_ADDRESS).burn(burnReward);
-            emit ILp.BurnReward(
-                TOKEN_ADDRESS,
-                round,
-                actionId,
-                msg.sender,
-                burnReward
-            );
+            emit BurnReward({
+                tokenAddress: TOKEN_ADDRESS,
+                round: round,
+                actionId: actionId,
+                account: msg.sender,
+                amount: burnReward
+            });
         }
 
-        emit ClaimReward(TOKEN_ADDRESS, round, actionId, msg.sender, amount);
+        emit ClaimReward({
+            tokenAddress: TOKEN_ADDRESS,
+            round: round,
+            actionId: actionId,
+            account: msg.sender,
+            amount: amount
+        });
     }
 
     function rewardInfoByAccount(
@@ -260,5 +268,6 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         }
 
         (mintReward, burnReward) = _calculateRewards(round, account);
+        return (mintReward, burnReward, false);
     }
 }
