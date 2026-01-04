@@ -194,7 +194,7 @@ contract ExtensionLpTest is Test {
 
     function test_ImmutableVariables_GovRatioMultiplier() public view {
         assertEq(extension.GOV_RATIO_MULTIPLIER(), GOV_RATIO_MULTIPLIER);
-        assertEq(extension.joinTokenAddress(), address(joinToken));
+        assertEq(extension.JOIN_TOKEN_ADDRESS(), address(joinToken));
         assertEq(extension.WAITING_BLOCKS(), WAITING_BLOCKS);
     }
 
@@ -459,7 +459,7 @@ contract ExtensionLpTest is Test {
             "tokenAddr mismatch"
         );
         assertEq(
-            extension.joinTokenAddress(),
+            extension.JOIN_TOKEN_ADDRESS(),
             address(joinToken),
             "joinTokenAddr mismatch"
         );

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-import {ExtensionCore} from "@extension/src/ExtensionCore.sol";
-import {IExtensionCore} from "@extension/src/interface/IExtensionCore.sol";
+import {ExtensionBase} from "@extension/src/ExtensionBase.sol";
+import {IExtension} from "@extension/src/interface/IExtension.sol";
 import {IExtensionLp} from "./interface/IExtensionLp.sol";
 import {
     ExtensionBaseRewardTokenJoin
@@ -77,7 +77,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
     function _validateJoinToken() internal view {
         address uniswapV2FactoryAddress = _center.uniswapV2FactoryAddress();
 
-        try IUniswapV2Pair(joinTokenAddress).factory() returns (
+        try IUniswapV2Pair(JOIN_TOKEN_ADDRESS).factory() returns (
             address pairFactory
         ) {
             if (pairFactory != uniswapV2FactoryAddress) {
@@ -88,12 +88,16 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
         }
         address pairToken0;
         address pairToken1;
-        try IUniswapV2Pair(joinTokenAddress).token0() returns (address token0) {
+        try IUniswapV2Pair(JOIN_TOKEN_ADDRESS).token0() returns (
+            address token0
+        ) {
             pairToken0 = token0;
         } catch {
             revert ITokenJoin.InvalidJoinTokenAddress();
         }
-        try IUniswapV2Pair(joinTokenAddress).token1() returns (address token1) {
+        try IUniswapV2Pair(JOIN_TOKEN_ADDRESS).token1() returns (
+            address token1
+        ) {
             pairToken1 = token1;
         } catch {
             revert ITokenJoin.InvalidJoinTokenAddress();
@@ -106,7 +110,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
     function isJoinedValueConverted()
         external
         pure
-        override(ExtensionCore)
+        override(ExtensionBase)
         returns (bool)
     {
         return true;
@@ -119,7 +123,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
             return 0;
         }
 
-        IUniswapV2Pair pair = IUniswapV2Pair(joinTokenAddress);
+        IUniswapV2Pair pair = IUniswapV2Pair(JOIN_TOKEN_ADDRESS);
 
         (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         uint256 totalLp = pair.totalSupply();
@@ -139,7 +143,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
     function joinedValue()
         external
         view
-        override(ExtensionCore)
+        override(ExtensionBase)
         returns (uint256)
     {
         return _lpToTokenAmount(totalJoinedAmount());
@@ -147,7 +151,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
 
     function joinedValueByAccount(
         address account
-    ) external view override(ExtensionCore) returns (uint256) {
+    ) external view override(ExtensionBase) returns (uint256) {
         return _lpToTokenAmount(_amountHistoryByAccount[account].latestValue());
     }
 

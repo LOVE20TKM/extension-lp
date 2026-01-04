@@ -88,7 +88,7 @@ contract FactoryTest is Test {
             "MIN_GOV_VOTES should match"
         );
         assertEq(
-            extension.joinTokenAddress(),
+            extension.JOIN_TOKEN_ADDRESS(),
             h.getPairAddress(tokenAddress),
             "joinTokenAddress should be pair address"
         );
