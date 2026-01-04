@@ -14,22 +14,18 @@ contract ExtensionFactoryLp is ExtensionFactoryBase, IFactoryLp {
 
     function createExtension(
         address tokenAddress,
-        address joinTokenAddress,
+        address joinLpTokenAddress,
         uint256 waitingBlocks,
         uint256 govRatioMultiplier,
         uint256 minGovVotes
     ) external returns (address extension) {
-        if (joinTokenAddress == address(0)) {
-            revert InvalidJoinTokenAddress();
-        }
-
-        _validateJoinToken(tokenAddress, joinTokenAddress);
+        _validateJoinLpTokenAddress(tokenAddress, joinLpTokenAddress);
 
         extension = address(
             new ExtensionLp(
                 address(this),
                 tokenAddress,
-                joinTokenAddress,
+                joinLpTokenAddress,
                 waitingBlocks,
                 govRatioMultiplier,
                 minGovVotes
@@ -41,14 +37,18 @@ contract ExtensionFactoryLp is ExtensionFactoryBase, IFactoryLp {
         return extension;
     }
 
-    function _validateJoinToken(
+    function _validateJoinLpTokenAddress(
         address tokenAddress,
-        address joinTokenAddress
+        address joinLpTokenAddress
     ) internal view {
+        if (joinLpTokenAddress == address(0)) {
+            revert InvalidJoinTokenAddress();
+        }
+
         IExtensionCenter center = IExtensionCenter(CENTER_ADDRESS);
         address uniswapV2FactoryAddress = center.uniswapV2FactoryAddress();
 
-        try IUniswapV2Pair(joinTokenAddress).factory() returns (
+        try IUniswapV2Pair(joinLpTokenAddress).factory() returns (
             address pairFactory
         ) {
             if (pairFactory != uniswapV2FactoryAddress) {
@@ -59,12 +59,16 @@ contract ExtensionFactoryLp is ExtensionFactoryBase, IFactoryLp {
         }
         address pairToken0;
         address pairToken1;
-        try IUniswapV2Pair(joinTokenAddress).token0() returns (address token0) {
+        try IUniswapV2Pair(joinLpTokenAddress).token0() returns (
+            address token0
+        ) {
             pairToken0 = token0;
         } catch {
             revert InvalidJoinTokenAddress();
         }
-        try IUniswapV2Pair(joinTokenAddress).token1() returns (address token1) {
+        try IUniswapV2Pair(joinLpTokenAddress).token1() returns (
+            address token1
+        ) {
             pairToken1 = token1;
         } catch {
             revert InvalidJoinTokenAddress();

@@ -6,7 +6,7 @@ interface IFactoryLp {
 
     function createExtension(
         address tokenAddress,
-        address joinTokenAddress,
+        address joinLpTokenAddress,
         uint256 waitingBlocks,
         uint256 govRatioMultiplier,
         uint256 minGovVotes
