@@ -32,15 +32,6 @@ contract ExtensionFactoryLp is ExtensionFactoryBase, IExtensionFactoryLp {
 
         _registerExtension(extension, tokenAddress);
 
-        emit ExtensionCreate(
-            extension,
-            tokenAddress,
-            joinTokenAddress,
-            waitingBlocks,
-            govRatioMultiplier,
-            minGovVotes
-        );
-
         return extension;
     }
 }
