@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
-
-interface IExtensionLp is ITokenJoin {
+interface ILp {
     error InsufficientGovVotes();
 
     event BurnReward(

@@ -2,13 +2,20 @@
 pragma solidity =0.8.17;
 
 import {Test} from "forge-std/Test.sol";
-import {TestExtensionLpHelper, FlowUserParams} from "../TestExtensionLpHelper.sol";
+import {
+    TestExtensionLpHelper,
+    FlowUserParams
+} from "../TestExtensionLpHelper.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
-import {IExtensionLp} from "../../src/interface/IExtensionLp.sol";
+import {ILp} from "../../src/interface/ILp.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IUniswapV2Pair} from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
-import {FIRST_PARENT_TOKEN_FUNDRAISING_GOAL} from "@extension/lib/core/test/Constant.sol";
+import {
+    IUniswapV2Pair
+} from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
+import {
+    FIRST_PARENT_TOKEN_FUNDRAISING_GOAL
+} from "@extension/lib/core/test/Constant.sol";
 
 contract GovVotesTest is Test {
     TestExtensionLpHelper public h;
@@ -33,7 +40,10 @@ contract GovVotesTest is Test {
         // Setup action with extension address as whiteListAddress
         h.stake_liquidity(bob);
         h.stake_token(bob);
-        bob.actionId = h.submit_new_action_with_extension(bob, address(extension));
+        bob.actionId = h.submit_new_action_with_extension(
+            bob,
+            address(extension)
+        );
         alice.actionId = bob.actionId;
     }
 
@@ -70,7 +80,7 @@ contract GovVotesTest is Test {
 
             vm.startPrank(poorUser.userAddress);
             IERC20(address(lpToken)).approve(address(extension), lpAmount);
-            vm.expectRevert(IExtensionLp.InsufficientGovVotes.selector);
+            vm.expectRevert(ILp.InsufficientGovVotes.selector);
             extension.join(lpAmount, new string[](0));
             vm.stopPrank();
         }
@@ -93,11 +103,9 @@ contract GovVotesTest is Test {
         uint256 lpAmount = 1e18;
         h.extension_join(bob, extension, lpAmount);
 
-        (
-            uint256 joinedRound,
-            uint256 amount,
-            ,
-        ) = extension.joinInfo(bob.userAddress);
+        (uint256 joinedRound, uint256 amount, , ) = extension.joinInfo(
+            bob.userAddress
+        );
         assertEq(joinedRound, h.joinContract().currentRound());
         assertEq(amount, lpAmount);
     }
@@ -106,7 +114,7 @@ contract GovVotesTest is Test {
         h.stake_liquidity(bob);
         h.stake_token(bob);
         h.vote(bob);
-        
+
         // Stake more to get more gov votes (in the same phase, just call again)
         h.stake_liquidity(bob);
         h.stake_token(bob);
@@ -146,11 +154,18 @@ contract GovVotesTest is Test {
     }
 
     function test_immutableVariables_minGovVotes() public view {
-        assertEq(extension.MIN_GOV_VOTES(), 1e18, "MIN_GOV_VOTES should be 1e18");
+        assertEq(
+            extension.MIN_GOV_VOTES(),
+            1e18,
+            "MIN_GOV_VOTES should be 1e18"
+        );
     }
 
     function test_immutableVariables_govRatioMultiplier() public view {
-        assertEq(extension.GOV_RATIO_MULTIPLIER(), 2, "GOV_RATIO_MULTIPLIER should be 2");
+        assertEq(
+            extension.GOV_RATIO_MULTIPLIER(),
+            2,
+            "GOV_RATIO_MULTIPLIER should be 2"
+        );
     }
 }
-

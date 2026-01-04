@@ -8,7 +8,7 @@ import {
 } from "../TestExtensionLpHelper.sol";
 import {ExtensionFactoryLp} from "../../src/ExtensionFactoryLp.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
-import {IExtensionFactoryLp} from "../../src/interface/IExtensionFactoryLp.sol";
+import {IFactoryLp} from "../../src/interface/IFactoryLp.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {
@@ -132,7 +132,7 @@ contract FactoryTest is Test {
 
     function test_factory_revertIfInvalidJoinTokenAddress() public {
         ExtensionFactoryLp factory = h.extensionFactory();
-        vm.expectRevert(IExtensionFactoryLp.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(IFactoryLp.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             tokenAddress,
             address(0), // Invalid join token address

@@ -4,8 +4,8 @@ pragma solidity =0.8.17;
 import {Test, console} from "forge-std/Test.sol";
 import {ExtensionLp} from "../src/ExtensionLp.sol";
 import {ExtensionFactoryLp} from "../src/ExtensionFactoryLp.sol";
-import {IExtensionLp} from "../src/interface/IExtensionLp.sol";
-import {IExtensionFactoryLp} from "../src/interface/IExtensionFactoryLp.sol";
+import {ILp} from "../src/interface/ILp.sol";
+import {IFactoryLp} from "../src/interface/IFactoryLp.sol";
 import {
     IExtensionFactory
 } from "@extension/src/interface/IExtensionFactory.sol";
@@ -220,7 +220,7 @@ contract ExtensionLpTest is Test {
             ? uint256(reserve0)
             : uint256(reserve1);
 
-        uint256 expectedTokenAmount = (joindLpAmount * tokenReserve) /
+        uint256 expectedTokenAmount = (joindLpAmount * tokenReserve * 2) /
             totalLpSupply;
         assertEq(extension.joinedValue(), expectedTokenAmount);
     }
@@ -241,8 +241,10 @@ contract ExtensionLpTest is Test {
             ? uint256(reserve0)
             : uint256(reserve1);
 
-        uint256 expectedTokenAmount1 = (50e18 * tokenReserve) / totalLpSupply;
-        uint256 expectedTokenAmount2 = (100e18 * tokenReserve) / totalLpSupply;
+        uint256 expectedTokenAmount1 = (50e18 * tokenReserve * 2) /
+            totalLpSupply;
+        uint256 expectedTokenAmount2 = (100e18 * tokenReserve * 2) /
+            totalLpSupply;
         assertEq(extension.joinedValueByAccount(user1), expectedTokenAmount1);
         assertEq(extension.joinedValueByAccount(user2), expectedTokenAmount2);
     }
@@ -486,7 +488,7 @@ contract ExtensionLpTest is Test {
     }
 
     function test_Factory_RevertIfInvalidJoinTokenAddress() public {
-        vm.expectRevert(IExtensionFactoryLp.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(IFactoryLp.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(0),
@@ -509,7 +511,7 @@ contract ExtensionLpTest is Test {
         stake.setValidGovVotes(address(token), poorUser, MIN_GOV_VOTES - 1);
 
         vm.prank(poorUser);
-        vm.expectRevert(IExtensionLp.InsufficientGovVotes.selector);
+        vm.expectRevert(ILp.InsufficientGovVotes.selector);
         extension.join(100e18, new string[](0));
     }
 

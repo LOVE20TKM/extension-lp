@@ -12,7 +12,7 @@ import {
 import {ExtensionCenter} from "@extension/src/ExtensionCenter.sol";
 import {ExtensionFactoryLp} from "../src/ExtensionFactoryLp.sol";
 import {ExtensionLp} from "../src/ExtensionLp.sol";
-import {IExtensionLp} from "../src/interface/IExtensionLp.sol";
+import {ILp} from "../src/interface/ILp.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {ILOVE20SLToken} from "@core/interfaces/ILOVE20SLToken.sol";
 import {

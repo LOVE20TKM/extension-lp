@@ -2,13 +2,11 @@
 pragma solidity =0.8.17;
 
 import {ExtensionBase} from "@extension/src/ExtensionBase.sol";
-import {IExtension} from "@extension/src/interface/IExtension.sol";
-import {IExtensionLp} from "./interface/IExtensionLp.sol";
+import {ILp} from "./interface/ILp.sol";
 import {
     ExtensionBaseRewardTokenJoin
 } from "@extension/src/ExtensionBaseRewardTokenJoin.sol";
 import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
-import {IExtensionCenter} from "@extension/src/interface/IExtensionCenter.sol";
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
@@ -23,7 +21,7 @@ import {ILOVE20Stake} from "@core/interfaces/ILOVE20Stake.sol";
 using RoundHistoryUint256 for RoundHistoryUint256.History;
 using SafeERC20 for IERC20;
 
-contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
+contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     uint256 internal constant LP_RATIO_PRECISION = 1e18;
 
     uint256 public immutable GOV_RATIO_MULTIPLIER;
@@ -58,7 +56,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
     function join(
         uint256 amount,
         string[] memory verificationInfos
-    ) public virtual override(ExtensionBaseRewardTokenJoin, ITokenJoin) {
+    ) public virtual override(ExtensionBaseRewardTokenJoin) {
         bool isFirstJoin = _joinedBlockByAccount[msg.sender] == 0;
 
         if (isFirstJoin) {
@@ -137,7 +135,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
             ? uint256(reserve0)
             : uint256(reserve1);
 
-        return (lpAmount * tokenReserve) / totalLp;
+        return (lpAmount * tokenReserve * 2) / totalLp;
     }
 
     function joinedValue()
@@ -236,7 +234,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, IExtensionLp {
 
         if (burnReward > 0) {
             ILOVE20Token(TOKEN_ADDRESS).burn(burnReward);
-            emit IExtensionLp.BurnReward(
+            emit ILp.BurnReward(
                 TOKEN_ADDRESS,
                 round,
                 actionId,

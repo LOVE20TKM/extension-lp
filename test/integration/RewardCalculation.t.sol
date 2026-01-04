@@ -7,7 +7,7 @@ import {
     FlowUserParams
 } from "../TestExtensionLpHelper.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
-import {IExtensionLp} from "../../src/interface/IExtensionLp.sol";
+import {ILp} from "../../src/interface/ILp.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {

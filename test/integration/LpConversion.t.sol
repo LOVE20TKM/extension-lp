@@ -64,7 +64,7 @@ contract LpConversionTest is Test {
             ? uint256(reserve0)
             : uint256(reserve1);
         uint256 totalLp = lpToken.totalSupply();
-        uint256 expectedValue = (lpAmount * tokenReserve) / totalLp;
+        uint256 expectedValue = (lpAmount * tokenReserve * 2) / totalLp;
 
         // Allow small difference due to rounding
         uint256 diff = joinedValue > expectedValue
@@ -105,7 +105,7 @@ contract LpConversionTest is Test {
             ? uint256(reserve0)
             : uint256(reserve1);
         uint256 totalLp = lpToken.totalSupply();
-        uint256 expectedValue = (bobLp * tokenReserve) / totalLp;
+        uint256 expectedValue = (bobLp * tokenReserve * 2) / totalLp;
 
         uint256 diff = bobJoinedValue > expectedValue
             ? bobJoinedValue - expectedValue
@@ -192,7 +192,7 @@ contract LpConversionTest is Test {
             ? uint256(reserve0)
             : uint256(reserve1);
         uint256 totalLp = lpToken.totalSupply();
-        uint256 expectedValue = (lpAmount * tokenReserve) / totalLp;
+        uint256 expectedValue = (lpAmount * tokenReserve * 2) / totalLp;
 
         uint256 diff = joinedValueAfter > expectedValue
             ? joinedValueAfter - expectedValue

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-import {IExtensionFactoryLp} from "./interface/IExtensionFactoryLp.sol";
+import {IFactoryLp} from "./interface/IFactoryLp.sol";
 import {ExtensionFactoryBase} from "@extension/src/ExtensionFactoryBase.sol";
 import {ExtensionLp} from "./ExtensionLp.sol";
 
-contract ExtensionFactoryLp is ExtensionFactoryBase, IExtensionFactoryLp {
+contract ExtensionFactoryLp is ExtensionFactoryBase, IFactoryLp {
     constructor(address _center) ExtensionFactoryBase(_center) {}
 
     function createExtension(
