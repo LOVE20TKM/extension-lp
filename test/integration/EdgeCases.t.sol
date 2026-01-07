@@ -92,9 +92,9 @@ contract EdgeCasesTest is Test {
         assertFalse(isMinted, "Should not be minted");
     }
 
-    function test_joinedValueByAccount_zeroAmount() public view {
-        uint256 joinedValue = extension.joinedValueByAccount(bob.userAddress);
-        assertEq(joinedValue, 0, "Should be 0 for non-joined user");
+    function test_joinedAmountByAccount_zeroAmount() public view {
+        uint256 joinedAmount = extension.joinedAmountByAccount(bob.userAddress);
+        assertEq(joinedAmount, 0, "Should be 0 for non-joined user");
     }
 
     function test_claimReward_twice() public {
@@ -148,8 +148,8 @@ contract EdgeCasesTest is Test {
         vm.stopPrank();
     }
 
-    function test_joinedValue_emptyExtension() public view {
-        assertEq(extension.joinedValue(), 0, "Should be 0 when no joins");
+    function test_joinedAmount_emptyExtension() public view {
+        assertEq(extension.joinedAmount(), 0, "Should be 0 when no joins");
     }
 
     function test_rewardInfoByAccount_currentRound() public {

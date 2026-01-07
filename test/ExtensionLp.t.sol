@@ -34,7 +34,6 @@ import {MockRandom} from "./mocks/MockRandom.sol";
  * @notice Tests for LP-specific functionality
  * @dev This test suite focuses on LP-specific features:
  *      - LP token validation
- *      - LP to token conversion (joinedValue)
  *      - govRatioMultiplier in reward calculation
  *      - rewardInfoByAccount with mint/burn rewards
  *      - Factory with LP-specific parameters
@@ -129,7 +128,7 @@ contract ExtensionLpTest is Test {
         // Set initial total supply for joinToken (for ratio calculations)
         joinToken.mint(address(0x1), 1000e18);
 
-        // Set Pair reserves for LP to token conversion
+        // Set Pair reserves
         joinToken.setReserves(10000e18, 10000e18);
 
         // Approve extension to spend join tokens
@@ -196,61 +195,6 @@ contract ExtensionLpTest is Test {
         assertEq(extension.GOV_RATIO_MULTIPLIER(), GOV_RATIO_MULTIPLIER);
         assertEq(extension.JOIN_TOKEN_ADDRESS(), address(joinToken));
         assertEq(extension.WAITING_BLOCKS(), WAITING_BLOCKS);
-    }
-
-    function test_isJoinedValueConverted() public view {
-        assertTrue(extension.isJoinedValueConverted());
-    }
-
-    // ============================================
-    // LP to Token Conversion Tests (joinedValue)
-    // ============================================
-
-    function test_JoinedValue() public {
-        vm.prank(user1);
-        extension.join(100e18, new string[](0));
-
-        IUniswapV2Pair pair = IUniswapV2Pair(address(joinToken));
-        uint256 totalLpSupply = pair.totalSupply();
-        uint256 joindLpAmount = 100e18;
-
-        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
-        address pairToken0 = pair.token0();
-        uint256 tokenReserve = (pairToken0 == address(token))
-            ? uint256(reserve0)
-            : uint256(reserve1);
-
-        uint256 expectedTokenAmount = (joindLpAmount * tokenReserve * 2) /
-            totalLpSupply;
-        assertEq(extension.joinedValue(), expectedTokenAmount);
-    }
-
-    function test_JoinedValueByAccount() public {
-        vm.prank(user1);
-        extension.join(50e18, new string[](0));
-
-        vm.prank(user2);
-        extension.join(100e18, new string[](0));
-
-        IUniswapV2Pair pair = IUniswapV2Pair(address(joinToken));
-        uint256 totalLpSupply = pair.totalSupply();
-
-        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
-        address pairToken0 = pair.token0();
-        uint256 tokenReserve = (pairToken0 == address(token))
-            ? uint256(reserve0)
-            : uint256(reserve1);
-
-        uint256 expectedTokenAmount1 = (50e18 * tokenReserve * 2) /
-            totalLpSupply;
-        uint256 expectedTokenAmount2 = (100e18 * tokenReserve * 2) /
-            totalLpSupply;
-        assertEq(extension.joinedValueByAccount(user1), expectedTokenAmount1);
-        assertEq(extension.joinedValueByAccount(user2), expectedTokenAmount2);
-    }
-
-    function test_JoinedValue_ZeroWhenNoStakes() public view {
-        assertEq(extension.joinedValue(), 0);
     }
 
     // ============================================

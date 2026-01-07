@@ -17,10 +17,10 @@ import {
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {ILOVE20Stake} from "@core/interfaces/ILOVE20Stake.sol";
 
-using RoundHistoryUint256 for RoundHistoryUint256.History;
-using SafeERC20 for IERC20;
-
 contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
+    using RoundHistoryUint256 for RoundHistoryUint256.History;
+    using SafeERC20 for IERC20;
+
     uint256 internal constant PRECISION = 1e18;
 
     uint256 public immutable GOV_RATIO_MULTIPLIER;
@@ -70,54 +70,6 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         super.join(amount, verificationInfos);
     }
 
-    function isJoinedValueConverted()
-        external
-        pure
-        override(ExtensionBase)
-        returns (bool)
-    {
-        return true;
-    }
-
-    function _lpToTokenAmount(
-        uint256 lpAmount
-    ) internal view returns (uint256) {
-        if (lpAmount == 0) {
-            return 0;
-        }
-
-        IUniswapV2Pair pair = IUniswapV2Pair(JOIN_TOKEN_ADDRESS);
-
-        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
-        uint256 totalLp = pair.totalSupply();
-
-        if (totalLp == 0) {
-            return 0;
-        }
-
-        address pairToken0 = pair.token0();
-        uint256 tokenReserve = (pairToken0 == TOKEN_ADDRESS)
-            ? uint256(reserve0)
-            : uint256(reserve1);
-
-        return (lpAmount * tokenReserve * 2) / totalLp;
-    }
-
-    function joinedValue()
-        external
-        view
-        override(ExtensionBase)
-        returns (uint256)
-    {
-        return _lpToTokenAmount(totalJoinedAmount());
-    }
-
-    function joinedValueByAccount(
-        address account
-    ) external view override(ExtensionBase) returns (uint256) {
-        return _lpToTokenAmount(_amountHistoryByAccount[account].latestValue());
-    }
-
     function _calculateRewards(
         uint256 round,
         address account
@@ -137,8 +89,8 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             return (0, 0);
         }
 
-        uint256 joinedAmount = amountByAccountByRound(account, round);
-        uint256 totalJoined = totalJoinedAmountByRound(round);
+        uint256 joinedAmount = _amountHistoryByAccount[account].value(round);
+        uint256 totalJoined = _totalJoinedAmountHistory.value(round);
 
         if (totalJoined == 0 || joinedAmount == 0) {
             return (0, 0);

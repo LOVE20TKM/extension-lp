@@ -88,9 +88,9 @@ contract MultipleUsersTest is Test {
             assertGt(amount, 0, "User should have joined");
         }
 
-        // Check total joined value
-        uint256 totalJoinedValue = extension.joinedValue();
-        assertGt(totalJoinedValue, 0, "Total joined value should be > 0");
+        // Check total joined amount
+        uint256 totalJoinedAmount = extension.joinedAmount();
+        assertGt(totalJoinedAmount, 0, "Total joined amount should be > 0");
     }
 
     function test_multipleUsers_rewardDistribution() public {
@@ -213,15 +213,15 @@ contract MultipleUsersTest is Test {
             h.extension_join(users[i], extension, lpAmount);
         }
 
-        // Check joined values
-        uint256 totalJoinedValue = extension.joinedValue();
-        assertGt(totalJoinedValue, 0, "Total joined value should be > 0");
+        // Check joined amounts
+        uint256 totalJoinedAmount = extension.joinedAmount();
+        assertGt(totalJoinedAmount, 0, "Total joined amount should be > 0");
 
         for (uint256 i = 0; i < numUsers; i++) {
-            uint256 userJoinedValue = extension.joinedValueByAccount(
+            uint256 userJoinedAmount = extension.joinedAmountByAccount(
                 users[i].userAddress
             );
-            assertGt(userJoinedValue, 0, "User should have joined value");
+            assertGt(userJoinedAmount, 0, "User should have joined amount");
         }
     }
 
