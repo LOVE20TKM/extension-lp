@@ -89,8 +89,10 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             return (0, 0);
         }
 
-        uint256 joinedAmount = _amountHistoryByAccount[account].value(round);
-        uint256 totalJoined = _totalJoinedAmountHistory.value(round);
+        uint256 joinedAmount = _joinedAmountByAccountHistory[account].value(
+            round
+        );
+        uint256 totalJoined = _joinedAmountHistory.value(round);
 
         if (totalJoined == 0 || joinedAmount == 0) {
             return (0, 0);
