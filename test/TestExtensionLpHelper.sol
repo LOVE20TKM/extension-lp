@@ -10,7 +10,7 @@ import {
     FlowUserParams
 } from "./TestBaseNoDeployContractsForTest.sol";
 import {ExtensionCenter} from "@extension/src/ExtensionCenter.sol";
-import {ExtensionFactoryLp} from "../src/ExtensionFactoryLp.sol";
+import {ExtensionLpFactory} from "../src/ExtensionLpFactory.sol";
 import {ExtensionLp} from "../src/ExtensionLp.sol";
 import {ILp} from "../src/interface/ILp.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
@@ -40,7 +40,7 @@ import {
 contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
     DeployContractsForTestIntegration public contractsIntegration;
     ExtensionCenter public extensionCenter;
-    ExtensionFactoryLp public extensionFactory;
+    ExtensionLpFactory public extensionFactory;
     mapping(address => ExtensionLp) public extensionsByToken;
 
     FlowUserParams public bob;
@@ -68,8 +68,8 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
             contractsIntegration.randomAddress()
         );
 
-        // Deploy ExtensionFactoryLp
-        extensionFactory = new ExtensionFactoryLp(address(extensionCenter));
+        // Deploy ExtensionLpFactory
+        extensionFactory = new ExtensionLpFactory(address(extensionCenter));
     }
 
     function _setUpIntegration() internal {

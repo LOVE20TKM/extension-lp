@@ -108,7 +108,7 @@ forge_script() {
 echo "forge_script() loaded"
 
 forge_script_deploy_extension_factory_lp() {
-  forge_script ../DeployExtensionFactoryLp.s.sol:DeployExtensionFactoryLp --sig "run()"
+  forge_script ../DeployExtensionLpFactory.s.sol:DeployExtensionLpFactory --sig "run()"
 }
 
 echo "forge_script_deploy_extension_factory_lp() loaded"

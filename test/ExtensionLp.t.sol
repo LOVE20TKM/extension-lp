@@ -3,9 +3,9 @@ pragma solidity =0.8.17;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ExtensionLp} from "../src/ExtensionLp.sol";
-import {ExtensionFactoryLp} from "../src/ExtensionFactoryLp.sol";
+import {ExtensionLpFactory} from "../src/ExtensionLpFactory.sol";
 import {ILp} from "../src/interface/ILp.sol";
-import {IFactoryLp} from "../src/interface/IFactoryLp.sol";
+import {ILpFactory} from "../src/interface/ILpFactory.sol";
 import {
     IExtensionFactory
 } from "@extension/src/interface/IExtensionFactory.sol";
@@ -39,7 +39,7 @@ import {MockRandom} from "./mocks/MockRandom.sol";
  *      - Factory with LP-specific parameters
  */
 contract ExtensionLpTest is Test {
-    ExtensionFactoryLp public factory;
+    ExtensionLpFactory public factory;
     ExtensionLp public extension;
     ExtensionCenter public center;
     MockERC20 public token;
@@ -94,7 +94,7 @@ contract ExtensionLpTest is Test {
         );
 
         // Deploy factory
-        factory = new ExtensionFactoryLp(address(center));
+        factory = new ExtensionLpFactory(address(center));
 
         // Mint and approve tokens for extension creation
         token.mint(address(this), 1e18);
@@ -432,7 +432,7 @@ contract ExtensionLpTest is Test {
     }
 
     function test_Factory_RevertIfInvalidJoinTokenAddress() public {
-        vm.expectRevert(IFactoryLp.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ILpFactory.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(0),

@@ -2,18 +2,18 @@
 pragma solidity =0.8.17;
 
 import "@extension/lib/core/script/BaseScript.sol";
-import {ExtensionFactoryLp} from "../src/ExtensionFactoryLp.sol";
+import {ExtensionLpFactory} from "../src/ExtensionLpFactory.sol";
 
 /**
- * @title DeployExtensionFactoryLp
- * @notice Script for deploying ExtensionFactoryLp contract
+ * @title DeployExtensionLpFactory
+ * @notice Script for deploying ExtensionLpFactory contract
  * @dev Reads centerAddress from address.extension.center.params and writes deployed address to address.extension.factory.lp.params
  */
-contract DeployExtensionFactoryLp is BaseScript {
-    address public extensionFactoryLpAddress;
+contract DeployExtensionLpFactory is BaseScript {
+    address public lpFactoryAddress;
 
     /**
-     * @notice Deploy ExtensionFactoryLp with centerAddress from address.extension.center.params
+     * @notice Deploy ExtensionLpFactory with centerAddress from address.extension.center.params
      * @dev The required center address is read from the network's address.extension.center.params file
      */
     function run() external {
@@ -26,28 +26,23 @@ contract DeployExtensionFactoryLp is BaseScript {
         // Validate address
         require(centerAddress != address(0), "centerAddress not found");
 
-        // Deploy ExtensionFactoryLp
+        // Deploy ExtensionLpFactory
         vm.startBroadcast();
-        extensionFactoryLpAddress = address(
-            new ExtensionFactoryLp(centerAddress)
-        );
+        lpFactoryAddress = address(new ExtensionLpFactory(centerAddress));
         vm.stopBroadcast();
 
         // Log deployment info if enabled
         if (!hideLogs) {
-            console.log(
-                "ExtensionFactoryLp deployed at:",
-                extensionFactoryLpAddress
-            );
+            console.log("ExtensionLpFactory deployed at:", lpFactoryAddress);
             console.log("Constructor parameters:");
             console.log("  centerAddress:", centerAddress);
         }
 
         // Update address file
         updateParamsFile(
-            "address.extension.factory.lp.params",
-            "extensionFactoryLpAddress",
-            vm.toString(extensionFactoryLpAddress)
+            "address.extension.lp.params",
+            "lpFactoryAddress",
+            vm.toString(lpFactoryAddress)
         );
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-interface IFactoryLp {
+interface ILpFactory {
     error InvalidJoinTokenAddress();
 
     function createExtension(

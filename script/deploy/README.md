@@ -1,6 +1,6 @@
 # Extension Factory Lp Deployment Scripts
 
-一键部署和验证 ExtensionFactoryLp 合约的脚本集合。
+一键部署和验证 ExtensionLpFactory 合约的脚本集合。
 
 ## 📁 脚本说明
 
@@ -20,7 +20,7 @@
 自动完成以下步骤：
 
 1. 初始化环境
-2. 部署 ExtensionFactoryLp 合约
+2. 部署 ExtensionLpFactory 合约
 3. 验证合约（仅 thinkium70001 网络）
 4. 运行部署检查
 
@@ -36,7 +36,7 @@
 
 **部署验证脚本**
 
-检查 ExtensionFactoryLp 合约的参数是否正确：
+检查 ExtensionLpFactory 合约的参数是否正确：
 
 - center address 是否正确设置
 
@@ -108,7 +108,7 @@ script/network/<network>/address.extension.factory.lp.params
 内容格式：
 
 ```bash
-extensionFactoryLpAddress=0x...
+lpFactoryAddress=0x...
 ```
 
 ## 🔍 查看可用网络
@@ -139,7 +139,7 @@ ls ../network/
 [Step 1/4] Initializing environment...
 ✓ Environment initialized
 
-[Step 2/4] Deploying ExtensionFactoryLp...
+[Step 2/4] Deploying ExtensionLpFactory...
 ✓ Extension Factory Lp deployed at: 0x59b670e9fA9D0A427751Af201D676719a970857b
 
 [Step 3/4] Skipping contract verification (not a thinkium network)
@@ -192,7 +192,7 @@ Error: centerAddress not found
 
 ## 📚 相关文件
 
-- 部署脚本：`script/DeployExtensionFactoryLp.s.sol`
-- 合约源码：`src/ExtensionFactoryLp.sol`
+- 部署脚本：`script/DeployExtensionLpFactory.s.sol`
+- 合约源码：`src/ExtensionLpFactory.sol`
 - Extension 合约：`src/ExtensionLp.sol`
 - Foundry 配置：`foundry.toml`

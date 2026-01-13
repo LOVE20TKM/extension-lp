@@ -17,8 +17,8 @@ source 00_init.sh $network || {
 echo -e "\033[32m✓\033[0m Environment initialized"
 echo ""
 
-# Step 2: Deploy ExtensionFactoryLp
-echo "[Step 2/4] Deploying ExtensionFactoryLp..."
+# Step 2: Deploy ExtensionLpFactory
+echo "[Step 2/4] Deploying ExtensionLpFactory..."
 forge_script_deploy_extension_factory_lp || {
     echo -e "\033[31mError:\033[0m Deployment failed"
     return 1
@@ -27,7 +27,7 @@ echo ""
 
 # Step 3: Load deployed address
 source $network_dir/address.extension.factory.lp.params
-echo -e "\033[32m✓\033[0m Extension Factory Lp deployed at: $extensionFactoryLpAddress"
+echo -e "\033[32m✓\033[0m Extension Factory Lp deployed at: $lpFactoryAddress"
 echo ""
 
 # Step 4: Verify contract (if applicable)
@@ -51,7 +51,7 @@ echo ""
 echo "========================================="
 echo -e "\033[32m✓\033[0m Deployment completed successfully!"
 echo "========================================="
-echo "Extension Factory Lp Address: $extensionFactoryLpAddress"
+echo "Extension Factory Lp Address: $lpFactoryAddress"
 echo "Network: $network"
 echo "========================================="
 

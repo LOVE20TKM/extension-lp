@@ -11,7 +11,7 @@ if [ -z "$RPC_URL" ]; then
 fi
 
 # Ensure extension factory lp address is loaded
-if [ -z "$extensionFactoryLpAddress" ]; then
+if [ -z "$lpFactoryAddress" ]; then
     source $network_dir/address.extension.factory.lp.params
 fi
 
@@ -45,7 +45,7 @@ verify_contract(){
 }
 echo "verify_contract() loaded"
 
-# Verify ExtensionFactoryLp
+# Verify ExtensionLpFactory
 constructor_args=$(cast abi-encode "constructor(address)" $centerAddress)
-verify_contract $extensionFactoryLpAddress "ExtensionFactoryLp" "src/ExtensionFactoryLp.sol" "$constructor_args"
+verify_contract $lpFactoryAddress "ExtensionLpFactory" "src/ExtensionLpFactory.sol" "$constructor_args"
 

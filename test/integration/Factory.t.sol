@@ -6,9 +6,9 @@ import {
     TestExtensionLpHelper,
     FlowUserParams
 } from "../TestExtensionLpHelper.sol";
-import {ExtensionFactoryLp} from "../../src/ExtensionFactoryLp.sol";
+import {ExtensionLpFactory} from "../../src/ExtensionLpFactory.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
-import {IFactoryLp} from "../../src/interface/IFactoryLp.sol";
+import {ILpFactory} from "../../src/interface/ILpFactory.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {
@@ -30,7 +30,7 @@ contract FactoryTest is Test {
     function test_factory_createExtension() public {
         ExtensionLp extension = h.createExtension(tokenAddress, 7, 2, 1e18);
 
-        ExtensionFactoryLp factory = h.extensionFactory();
+        ExtensionLpFactory factory = h.extensionFactory();
         assertTrue(
             factory.exists(address(extension)),
             "Extension should exist in factory"
@@ -43,7 +43,7 @@ contract FactoryTest is Test {
 
         ExtensionLp extension2 = h.createExtension(tokenAddress, 10, 3, 2e18);
 
-        ExtensionFactoryLp factory = h.extensionFactory();
+        ExtensionLpFactory factory = h.extensionFactory();
         assertTrue(
             factory.exists(address(extension1)),
             "Extension1 should exist"
@@ -98,7 +98,7 @@ contract FactoryTest is Test {
         ExtensionLp extension1 = h.createExtension(tokenAddress, 7, 2, 1e18);
         ExtensionLp extension2 = h.createExtension(tokenAddress, 10, 3, 2e18);
 
-        ExtensionFactoryLp factory = h.extensionFactory();
+        ExtensionLpFactory factory = h.extensionFactory();
         address[] memory extensions = factory.extensions();
         assertEq(extensions.length, 2, "Should have 2 extensions");
         assertEq(
@@ -117,7 +117,7 @@ contract FactoryTest is Test {
         ExtensionLp extension1 = h.createExtension(tokenAddress, 7, 2, 1e18);
         ExtensionLp extension2 = h.createExtension(tokenAddress, 10, 3, 2e18);
 
-        ExtensionFactoryLp factory = h.extensionFactory();
+        ExtensionLpFactory factory = h.extensionFactory();
         assertEq(
             factory.extensionsAtIndex(0),
             address(extension1),
@@ -131,8 +131,8 @@ contract FactoryTest is Test {
     }
 
     function test_factory_revertIfInvalidJoinTokenAddress() public {
-        ExtensionFactoryLp factory = h.extensionFactory();
-        vm.expectRevert(IFactoryLp.InvalidJoinTokenAddress.selector);
+        ExtensionLpFactory factory = h.extensionFactory();
+        vm.expectRevert(ILpFactory.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             tokenAddress,
             address(0), // Invalid join token address
@@ -143,7 +143,7 @@ contract FactoryTest is Test {
     }
 
     function test_factory_center() public view {
-        ExtensionFactoryLp factory = h.extensionFactory();
+        ExtensionLpFactory factory = h.extensionFactory();
         assertEq(
             factory.CENTER_ADDRESS(),
             address(h.extensionCenter()),
@@ -191,7 +191,7 @@ contract FactoryTest is Test {
             childTokenAddress
         );
 
-        ExtensionFactoryLp factory = h.extensionFactory();
+        ExtensionLpFactory factory = h.extensionFactory();
         assertTrue(
             factory.exists(address(childExtension)),
             "Child extension should exist"
