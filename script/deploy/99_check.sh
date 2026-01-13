@@ -6,7 +6,7 @@ echo "========================================="
 
 if [ -z "$lpFactoryAddress" ]; then
     echo -e "\033[31mError:\033[0m lpFactoryAddress not set"
-    echo "Please run: source ../network/$network/address.extension.factory.lp.params"
+    echo "Please run: source ../network/$network/address.extension.lp.params"
     return 1
 fi
 
@@ -16,7 +16,7 @@ passed_checks=0
 
 # Check 1: Verify center address
 total_checks=$((total_checks + 1))
-actual_center=$(cast call $lpFactoryAddress "center()(address)" --rpc-url $RPC_URL)
+actual_center=$(cast_call $lpFactoryAddress "CENTER_ADDRESS()(address)")
 if check_equal "Center address" "$centerAddress" "$actual_center"; then
     passed_checks=$((passed_checks + 1))
 fi

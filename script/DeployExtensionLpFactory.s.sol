@@ -7,7 +7,7 @@ import {ExtensionLpFactory} from "../src/ExtensionLpFactory.sol";
 /**
  * @title DeployExtensionLpFactory
  * @notice Script for deploying ExtensionLpFactory contract
- * @dev Reads centerAddress from address.extension.center.params and writes deployed address to address.extension.factory.lp.params
+ * @dev Reads centerAddress from address.extension.center.params and writes deployed address to address.extension.lp.params
  */
 contract DeployExtensionLpFactory is BaseScript {
     address public lpFactoryAddress;

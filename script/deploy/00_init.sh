@@ -13,9 +13,6 @@ fi
 network_dir="../network/$network"
 
 source $network_dir/network.params && \
-source $network_dir/LOVE20.params && \
-source $network_dir/WETH.params && \
-source $network_dir/address.params && \
 source $network_dir/address.extension.center.params
 
 # ------ Check .account file ------

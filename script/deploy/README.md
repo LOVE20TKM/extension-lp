@@ -74,7 +74,7 @@ source 00_init.sh <network>
 forge_script_deploy_extension_factory_lp
 
 # Step 3: 加载部署地址
-source $network_dir/address.extension.factory.lp.params
+source $network_dir/address.extension.lp.params
 
 # Step 4: 验证合约（可选，仅 thinkium 网络）
 source 03_verify.sh
@@ -102,7 +102,7 @@ source 99_check.sh
 部署成功后，合约地址会写入：
 
 ```
-script/network/<network>/address.extension.factory.lp.params
+script/network/<network>/address.extension.lp.params
 ```
 
 内容格式：

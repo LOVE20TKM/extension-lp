@@ -26,7 +26,7 @@ forge_script_deploy_extension_factory_lp || {
 echo ""
 
 # Step 3: Load deployed address
-source $network_dir/address.extension.factory.lp.params
+source $network_dir/address.extension.lp.params
 echo -e "\033[32m✓\033[0m Extension Factory Lp deployed at: $lpFactoryAddress"
 echo ""
 

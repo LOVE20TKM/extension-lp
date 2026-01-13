@@ -12,7 +12,7 @@ fi
 
 # Ensure extension factory lp address is loaded
 if [ -z "$lpFactoryAddress" ]; then
-    source $network_dir/address.extension.factory.lp.params
+    source $network_dir/address.extension.lp.params
 fi
 
 if [ -z "$centerAddress" ]; then
