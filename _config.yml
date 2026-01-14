@@ -1,0 +1,9 @@
+# GitHub Pages Configuration
+title: "LOVE20 Extension"
+description: "LOVE20 LP扩展协议"
+theme: jekyll-theme-hacker
+lang: zh-CN
+# GitHub Pages will automatically render README.md as the home page
+
+# 设置Markdown处理器
+markdown: kramdown
