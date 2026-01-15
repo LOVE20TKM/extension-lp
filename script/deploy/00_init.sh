@@ -57,10 +57,7 @@ cast_send() {
     cast send "$address" \
         "$function_signature" \
         "${args[@]}" \
-        --rpc-url "$RPC_URL" \
-        --account "$KEYSTORE_ACCOUNT" \
-        --password "$KEYSTORE_PASSWORD" \
-        --legacy
+        --rpc-url "$RPC_URL"
 }
 echo "cast_send() loaded"
 
