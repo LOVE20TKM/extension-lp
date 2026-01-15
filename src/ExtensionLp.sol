@@ -6,9 +6,6 @@ import {ILp} from "./interface/ILp.sol";
 import {
     ExtensionBaseRewardTokenJoin
 } from "@extension/src/ExtensionBaseRewardTokenJoin.sol";
-import {
-    IUniswapV2Pair
-} from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
 import {RoundHistoryUint256} from "@extension/src/lib/RoundHistoryUint256.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {
@@ -136,7 +133,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     function _claimReward(
         uint256 round
     ) internal virtual override returns (uint256 amount) {
-        if (_claimedReward[round][msg.sender] > 0) {
+        if (_claimed[round][msg.sender]) {
             revert AlreadyClaimed();
         }
 
@@ -146,6 +143,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         );
         amount = mintReward;
 
+        _claimed[round][msg.sender] = true;
         _claimedReward[round][msg.sender] = amount;
         _burnReward[round][msg.sender] = burnReward;
 
@@ -179,11 +177,14 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     )
         external
         view
-        returns (uint256 mintReward, uint256 burnReward, bool isMinted)
+        returns (uint256 mintReward, uint256 burnReward, bool isClaimed)
     {
-        uint256 claimedReward = _claimedReward[round][account];
-        if (claimedReward > 0) {
-            return (claimedReward, _burnReward[round][account], true);
+        if (_claimed[round][account]) {
+            return (
+                _claimedReward[round][account],
+                _burnReward[round][account],
+                true
+            );
         }
 
         (mintReward, burnReward) = _calculateRewards(round, account);

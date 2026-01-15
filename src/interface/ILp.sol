@@ -22,5 +22,5 @@ interface ILp {
     )
         external
         view
-        returns (uint256 mintReward, uint256 burnReward, bool isMinted);
+        returns (uint256 mintReward, uint256 burnReward, bool isClaimed);
 }
