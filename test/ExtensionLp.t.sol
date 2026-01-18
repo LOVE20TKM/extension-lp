@@ -208,12 +208,12 @@ contract ExtensionLpTest is Test {
         uint256 currentRound = verify.currentRound();
 
         // Before round is finished, mintReward should be 0
-        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
             .rewardInfoByAccount(currentRound, user1);
 
         assertEq(mintReward, 0);
         assertEq(burnReward, 0);
-        assertFalse(isMinted);
+        assertFalse(claimed);
     }
 
     function test_RewardInfoByAccount_AfterRoundFinished() public {
@@ -228,7 +228,7 @@ contract ExtensionLpTest is Test {
         uint256 totalReward = 1000e18;
         mint.setActionReward(address(token), round, ACTION_ID, totalReward);
 
-        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
             .rewardInfoByAccount(round, user1);
 
         // User1 has 100% of LP (totalJoined = 100e18)
@@ -240,7 +240,7 @@ contract ExtensionLpTest is Test {
         // burnReward = 1000e18 - 200e18 = 800e18
         assertEq(mintReward, 200e18, "mintReward should be 200e18");
         assertEq(burnReward, 800e18, "burnReward should be 800e18");
-        assertFalse(isMinted);
+        assertFalse(claimed);
     }
 
     function test_RewardInfoByAccount_MultipleUsers() public {
@@ -260,9 +260,9 @@ contract ExtensionLpTest is Test {
         // User1: tokenRatio = 100e18 * 1e18 / 300e18 = 333333333333333333, govRatio = 2e17, score = 2e17
         // User2: tokenRatio = 200e18 * 1e18 / 300e18 = 666666666666666666, govRatio = 4e17, score = 4e17
 
-        (uint256 mintReward1, uint256 burnReward1, bool isMinted1) = extension
+        (uint256 mintReward1, uint256 burnReward1, bool claimed1) = extension
             .rewardInfoByAccount(round, user1);
-        (uint256 mintReward2, uint256 burnReward2, bool isMinted2) = extension
+        (uint256 mintReward2, uint256 burnReward2, bool claimed2) = extension
             .rewardInfoByAccount(round, user2);
 
         // User1: mintReward = 1000e18 * 2e17 / 1e18 = 200e18
@@ -270,14 +270,14 @@ contract ExtensionLpTest is Test {
         //        burnReward = 333333333333333333000 - 200e18 = 133333333333333333000
         assertEq(mintReward1, 200e18, "User1 mintReward");
         assertEq(burnReward1, 133333333333333333000, "User1 burnReward");
-        assertFalse(isMinted1);
+        assertFalse(claimed1);
 
         // User2: mintReward = 1000e18 * 4e17 / 1e18 = 400e18
         //        theoreticalReward = 1000e18 * 666666666666666666 / 1e18 = 666666666666666666000
         //        burnReward = 666666666666666666000 - 400e18 = 266666666666666666000
         assertEq(mintReward2, 400e18, "User2 mintReward");
         assertEq(burnReward2, 266666666666666666000, "User2 burnReward");
-        assertFalse(isMinted2);
+        assertFalse(claimed2);
     }
 
     function test_RewardInfoByAccount_AfterClaim() public {
@@ -297,12 +297,12 @@ contract ExtensionLpTest is Test {
         extension.claimReward(round);
 
         // Check reward info after claim
-        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
             .rewardInfoByAccount(round, user1);
 
         assertEq(mintReward, 200e18, "mintReward should be 200e18");
         assertEq(burnReward, 800e18, "burnReward should be 800e18");
-        assertTrue(isMinted, "Should be minted after claim");
+        assertTrue(claimed, "Should be minted after claim");
     }
 
     function test_RewardInfoByAccount_NonJoinedUser() public {
@@ -316,12 +316,12 @@ contract ExtensionLpTest is Test {
         mint.setActionReward(address(token), round, ACTION_ID, totalReward);
 
         // User3 didn't join
-        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
             .rewardInfoByAccount(round, user3);
 
         assertEq(mintReward, 0, "Non-joined user mintReward should be 0");
         assertEq(burnReward, 0, "Non-joined user burnReward should be 0");
-        assertFalse(isMinted);
+        assertFalse(claimed);
     }
 
     // ============================================
@@ -432,11 +432,22 @@ contract ExtensionLpTest is Test {
     }
 
     function test_Factory_RevertIfInvalidJoinTokenAddress() public {
-        vm.expectRevert(ILpFactory.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ITokenJoin.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(0),
             WAITING_BLOCKS,
+            GOV_RATIO_MULTIPLIER,
+            MIN_GOV_VOTES
+        );
+    }
+
+    function test_Factory_RevertIfInvalidWaitingBlocks() public {
+        vm.expectRevert(ILpFactory.InvalidWaitingBlocks.selector);
+        factory.createExtension(
+            address(token),
+            address(joinToken),
+            0,
             GOV_RATIO_MULTIPLIER,
             MIN_GOV_VOTES
         );

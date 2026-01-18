@@ -9,6 +9,7 @@ import {
 import {ExtensionLpFactory} from "../../src/ExtensionLpFactory.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
 import {ILpFactory} from "../../src/interface/ILpFactory.sol";
+import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {
@@ -132,7 +133,7 @@ contract FactoryTest is Test {
 
     function test_factory_revertIfInvalidJoinTokenAddress() public {
         ExtensionLpFactory factory = h.extensionFactory();
-        vm.expectRevert(ILpFactory.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ITokenJoin.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             tokenAddress,
             address(0), // Invalid join token address
@@ -140,6 +141,14 @@ contract FactoryTest is Test {
             2,
             1e18
         );
+    }
+
+    function test_factory_revertIfInvalidWaitingBlocks() public {
+        ExtensionLpFactory factory = h.extensionFactory();
+        address pairAddress = h.getPairAddress(tokenAddress);
+
+        vm.expectRevert(ILpFactory.InvalidWaitingBlocks.selector);
+        factory.createExtension(tokenAddress, pairAddress, 0, 2, 1e18);
     }
 
     function test_factory_center() public view {

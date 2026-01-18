@@ -2,7 +2,7 @@
 pragma solidity =0.8.17;
 
 interface ILpFactory {
-    error InvalidJoinTokenAddress();
+    error InvalidWaitingBlocks();
 
     function createExtension(
         address tokenAddress,

@@ -5,6 +5,7 @@ import {ILpFactory} from "./interface/ILpFactory.sol";
 import {ExtensionFactoryBase} from "@extension/src/ExtensionFactoryBase.sol";
 import {ExtensionLp} from "./ExtensionLp.sol";
 import {IExtensionCenter} from "@extension/src/interface/IExtensionCenter.sol";
+import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
@@ -19,6 +20,9 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
         uint256 govRatioMultiplier,
         uint256 minGovVotes
     ) external returns (address extension) {
+        if (waitingBlocks == 0) {
+            revert InvalidWaitingBlocks();
+        }
         _validateJoinLpTokenAddress(tokenAddress, joinLpTokenAddress);
 
         extension = address(
@@ -42,7 +46,7 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
         address joinLpTokenAddress
     ) internal view {
         if (joinLpTokenAddress == address(0)) {
-            revert InvalidJoinTokenAddress();
+            revert ITokenJoin.InvalidJoinTokenAddress();
         }
 
         IExtensionCenter center = IExtensionCenter(CENTER_ADDRESS);
@@ -52,10 +56,10 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
             address pairFactory
         ) {
             if (pairFactory != uniswapV2FactoryAddress) {
-                revert InvalidJoinTokenAddress();
+                revert ITokenJoin.InvalidJoinTokenAddress();
             }
         } catch {
-            revert InvalidJoinTokenAddress();
+            revert ITokenJoin.InvalidJoinTokenAddress();
         }
         address pairToken0;
         address pairToken1;
@@ -64,17 +68,17 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
         ) {
             pairToken0 = token0;
         } catch {
-            revert InvalidJoinTokenAddress();
+            revert ITokenJoin.InvalidJoinTokenAddress();
         }
         try IUniswapV2Pair(joinLpTokenAddress).token1() returns (
             address token1
         ) {
             pairToken1 = token1;
         } catch {
-            revert InvalidJoinTokenAddress();
+            revert ITokenJoin.InvalidJoinTokenAddress();
         }
         if (pairToken0 != tokenAddress && pairToken1 != tokenAddress) {
-            revert InvalidJoinTokenAddress();
+            revert ITokenJoin.InvalidJoinTokenAddress();
         }
     }
 }

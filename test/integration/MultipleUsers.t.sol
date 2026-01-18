@@ -3,12 +3,20 @@ pragma solidity =0.8.17;
 
 import {Test} from "forge-std/Test.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {TestExtensionLpHelper, FlowUserParams} from "../TestExtensionLpHelper.sol";
+import {
+    TestExtensionLpHelper,
+    FlowUserParams
+} from "../TestExtensionLpHelper.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IUniswapV2Pair} from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
-import {FIRST_PARENT_TOKEN_FUNDRAISING_GOAL, PHASE_BLOCKS} from "@extension/lib/core/test/Constant.sol";
+import {
+    IUniswapV2Pair
+} from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
+import {
+    FIRST_PARENT_TOKEN_FUNDRAISING_GOAL,
+    PHASE_BLOCKS
+} from "@extension/lib/core/test/Constant.sol";
 
 contract MultipleUsersTest is Test {
     TestExtensionLpHelper public h;
@@ -68,7 +76,10 @@ contract MultipleUsersTest is Test {
         }
 
         // Submit action with extension address as whiteListAddress
-        actionId = h.submit_new_action_with_extension(users[0], address(extension));
+        actionId = h.submit_new_action_with_extension(
+            users[0],
+            address(extension)
+        );
         for (uint256 i = 0; i < numUsers; i++) {
             users[i].actionId = actionId;
             h.vote(users[i]);
@@ -118,7 +129,10 @@ contract MultipleUsersTest is Test {
             h.stake_token(users[i]);
         }
 
-        actionId = h.submit_new_action_with_extension(users[0], address(extension));
+        actionId = h.submit_new_action_with_extension(
+            users[0],
+            address(extension)
+        );
         for (uint256 i = 0; i < numUsers; i++) {
             users[i].actionId = actionId;
             h.vote(users[i]);
@@ -149,15 +163,12 @@ contract MultipleUsersTest is Test {
         uint256 totalBurnReward = 0;
 
         for (uint256 i = 0; i < numUsers; i++) {
-            (
-                uint256 mintReward,
-                uint256 burnReward,
-                bool isMinted
-            ) = extension.rewardInfoByAccount(round, users[i].userAddress);
+            (uint256 mintReward, uint256 burnReward, bool claimed) = extension
+                .rewardInfoByAccount(round, users[i].userAddress);
 
             assertGt(mintReward, 0, "User should have mint reward");
             assertGe(burnReward, 0, "User should have burn reward >= 0");
-            assertFalse(isMinted, "Should not be minted before claim");
+            assertFalse(claimed, "Should not be minted before claim");
 
             totalMintReward += mintReward;
             totalBurnReward += burnReward;
@@ -187,7 +198,7 @@ contract MultipleUsersTest is Test {
         h.forceMint(tokenAddress, users[0].userAddress, 1e24);
         h.stake_liquidity(users[0]);
         h.stake_token(users[0]);
-        
+
         // Other users stake with different amounts
         for (uint256 i = 1; i < numUsers; i++) {
             users[i].stake.tokenAmountForLpPercent = 10 + ((i - 1) * 10);
@@ -199,7 +210,10 @@ contract MultipleUsersTest is Test {
             h.stake_token(users[i]);
         }
 
-        actionId = h.submit_new_action_with_extension(users[0], address(extension));
+        actionId = h.submit_new_action_with_extension(
+            users[0],
+            address(extension)
+        );
         for (uint256 i = 0; i < numUsers; i++) {
             users[i].actionId = actionId;
             h.vote(users[i]);
@@ -250,7 +264,10 @@ contract MultipleUsersTest is Test {
             h.stake_token(users[i]);
         }
 
-        actionId = h.submit_new_action_with_extension(users[0], address(extension));
+        actionId = h.submit_new_action_with_extension(
+            users[0],
+            address(extension)
+        );
         for (uint256 i = 0; i < numUsers; i++) {
             users[i].actionId = actionId;
             h.vote(users[i]);
@@ -273,8 +290,11 @@ contract MultipleUsersTest is Test {
             uint256 lpBalanceBefore = lpToken.balanceOf(users[i].userAddress);
             h.extension_withdraw(users[i], extension);
             uint256 lpBalanceAfter = lpToken.balanceOf(users[i].userAddress);
-            assertGt(lpBalanceAfter, lpBalanceBefore, "Should receive LP tokens back");
+            assertGt(
+                lpBalanceAfter,
+                lpBalanceBefore,
+                "Should receive LP tokens back"
+            );
         }
     }
 }
-

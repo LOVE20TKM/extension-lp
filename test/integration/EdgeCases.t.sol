@@ -66,12 +66,12 @@ contract EdgeCasesTest is Test {
         assertGt(round, 0, "Round should be > 0");
 
         // Alice didn't join
-        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
             .rewardInfoByAccount(round, alice.userAddress);
 
         assertEq(mintReward, 0, "Non-joined user mintReward should be 0");
         assertEq(burnReward, 0, "Non-joined user burnReward should be 0");
-        assertFalse(isMinted, "Should not be minted");
+        assertFalse(claimed, "Should not be minted");
     }
 
     function test_rewardInfoByAccount_futureRound() public {
@@ -84,12 +84,12 @@ contract EdgeCasesTest is Test {
 
         uint256 futureRound = h.verifyContract().currentRound() + 10;
 
-        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
             .rewardInfoByAccount(futureRound, bob.userAddress);
 
         assertEq(mintReward, 0, "Future round mintReward should be 0");
         assertEq(burnReward, 0, "Future round burnReward should be 0");
-        assertFalse(isMinted, "Should not be minted");
+        assertFalse(claimed, "Should not be minted");
     }
 
     function test_joinedAmountByAccount_zeroAmount() public view {
@@ -162,12 +162,12 @@ contract EdgeCasesTest is Test {
 
         uint256 currentRound = h.verifyContract().currentRound();
 
-        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
             .rewardInfoByAccount(currentRound, bob.userAddress);
 
         assertEq(mintReward, 0, "Current round mintReward should be 0");
         assertEq(burnReward, 0, "Current round burnReward should be 0");
-        assertFalse(isMinted, "Should not be minted");
+        assertFalse(claimed, "Should not be minted");
     }
 
     function test_extension_withNoActionReward() public {

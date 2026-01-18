@@ -58,12 +58,12 @@ contract RewardCalculationTest is Test {
 
         uint256 currentRound = h.verifyContract().currentRound();
 
-        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
             .rewardInfoByAccount(currentRound, bob.userAddress);
 
         assertEq(mintReward, 0, "mintReward should be 0 before round finished");
         assertEq(burnReward, 0, "burnReward should be 0 before round finished");
-        assertFalse(isMinted, "Should not be minted");
+        assertFalse(claimed, "Should not be minted");
     }
 
     function test_rewardInfoByAccount_afterRoundFinished() public {
@@ -88,13 +88,13 @@ contract RewardCalculationTest is Test {
         // Use verifyRound (currentRound - 1) instead of joinRound, like test_all_standard_steps
         // This is the round that was just verified, and reward is already prepared for it
         uint256 round = h.verifyContract().currentRound() - 1;
-        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
             .rewardInfoByAccount(round, bob.userAddress);
 
         // rewardInfoByAccount returns expected reward even if not claimed yet
         assertGt(mintReward, 0, "mintReward should be > 0");
         assertGe(burnReward, 0, "burnReward should be >= 0");
-        assertFalse(isMinted, "Should not be minted before claim");
+        assertFalse(claimed, "Should not be minted before claim");
     }
 
     function test_rewardInfoByAccount_afterClaim() public {
@@ -120,12 +120,12 @@ contract RewardCalculationTest is Test {
         // Don't mint action reward manually, let claimReward trigger it automatically via _prepareRewardIfNeeded
         h.extension_claimReward(bob, extension, round);
 
-        (uint256 mintReward, uint256 burnReward, bool isMinted) = extension
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
             .rewardInfoByAccount(round, bob.userAddress);
 
         assertGt(mintReward, 0, "mintReward should be > 0");
         assertGe(burnReward, 0, "burnReward should be >= 0");
-        assertTrue(isMinted, "Should be minted after claim");
+        assertTrue(claimed, "Should be minted after claim");
     }
 
     function test_rewardCalculation_withGovRatioMultiplier() public {
@@ -155,14 +155,14 @@ contract RewardCalculationTest is Test {
         // Use verifyRound (currentRound - 1) instead of joinRound, like test_all_standard_steps
         // This is the round that was just verified, and reward is already prepared for it
         uint256 round = h.verifyContract().currentRound() - 1;
-        (uint256 mintReward, , bool isMinted) = extension.rewardInfoByAccount(
+        (uint256 mintReward, , bool claimed) = extension.rewardInfoByAccount(
             round,
             bob.userAddress
         );
 
         // With gov ratio multiplier, the reward should be limited by gov votes
         assertGt(mintReward, 0, "mintReward should be > 0");
-        assertFalse(isMinted, "Should not be minted before claim");
+        assertFalse(claimed, "Should not be minted before claim");
     }
 
     function test_rewardCalculation_multipleUsers() public {
