@@ -41,9 +41,7 @@ cast_call() {
     cast call "$address" \
         "$function_signature" \
         "${args[@]}" \
-        --rpc-url "$RPC_URL" \
-        --account "$KEYSTORE_ACCOUNT" \
-        --password "$KEYSTORE_PASSWORD"
+        --rpc-url "$RPC_URL"
 }
 echo "cast_call() loaded"
 
@@ -57,7 +55,10 @@ cast_send() {
     cast send "$address" \
         "$function_signature" \
         "${args[@]}" \
-        --rpc-url "$RPC_URL"
+        --rpc-url "$RPC_URL" \
+        --account "$KEYSTORE_ACCOUNT" \
+        --sender "$ACCOUNT_ADDRESS" \
+        --password "$KEYSTORE_PASSWORD"
 }
 echo "cast_send() loaded"
 
