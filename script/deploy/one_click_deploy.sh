@@ -19,15 +19,9 @@ echo ""
 
 # Step 2: Deploy ExtensionLpFactory
 echo "[Step 2/4] Deploying ExtensionLpFactory..."
-forge_script_deploy_extension_factory_lp || {
-    echo -e "\033[31mError:\033[0m Deployment failed"
+source 01_deploy_extension_lp_factory.sh || {
     return 1
 }
-echo ""
-
-# Step 3: Load deployed address
-source $network_dir/address.extension.lp.params
-echo -e "\033[32m✓\033[0m Extension Factory Lp deployed at: $lpFactoryAddress"
 echo ""
 
 # Step 4: Verify contract (if applicable)
