@@ -25,7 +25,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     ILOVE20Stake internal immutable _stake;
 
     /// @dev round => account => burnReward (recorded at claim time)
-    mapping(uint256 => mapping(address => uint256)) internal _burnReward;
+    mapping(uint256 => mapping(address => uint256)) internal _burnedReward;
 
     constructor(
         address factory_,
@@ -66,7 +66,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         super.join(amount, verificationInfos);
     }
 
-    function _calculateRewards(
+    function _calculateRewardBreakdown(
         uint256 round,
         address account
     ) internal view returns (uint256 mintReward, uint256 burnReward) {
@@ -125,7 +125,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         uint256 round,
         address account
     ) internal view virtual override returns (uint256) {
-        (uint256 mintReward, ) = _calculateRewards(round, account);
+        (uint256 mintReward, ) = _calculateRewardBreakdown(round, account);
         return mintReward;
     }
 
@@ -136,7 +136,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             revert AlreadyClaimed();
         }
 
-        (uint256 mintReward, uint256 burnReward) = _calculateRewards(
+        (uint256 mintReward, uint256 burnReward) = _calculateRewardBreakdown(
             round,
             msg.sender
         );
@@ -144,7 +144,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
 
         _claimed[round][msg.sender] = true;
         _claimedReward[round][msg.sender] = amount;
-        _burnReward[round][msg.sender] = burnReward;
+        _burnedReward[round][msg.sender] = burnReward;
 
         if (amount > 0) {
             IERC20(TOKEN_ADDRESS).safeTransfer(msg.sender, amount);
@@ -181,12 +181,12 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         if (_claimed[round][account]) {
             return (
                 _claimedReward[round][account],
-                _burnReward[round][account],
+                _burnedReward[round][account],
                 true
             );
         }
 
-        (mintReward, burnReward) = _calculateRewards(round, account);
+        (mintReward, burnReward) = _calculateRewardBreakdown(round, account);
         return (mintReward, burnReward, false);
     }
 }
