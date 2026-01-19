@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-import {ExtensionBase} from "@extension/src/ExtensionBase.sol";
 import {ILp} from "./interface/ILp.sol";
 import {
     ExtensionBaseRewardTokenJoin
