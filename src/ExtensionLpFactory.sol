@@ -2,8 +2,8 @@
 pragma solidity =0.8.17;
 
 import {ILpFactory} from "./interface/ILpFactory.sol";
-import {ExtensionFactoryBase} from "@extension/src/ExtensionFactoryBase.sol";
 import {ExtensionLp} from "./ExtensionLp.sol";
+import {ExtensionFactoryBase} from "@extension/src/ExtensionFactoryBase.sol";
 import {IExtensionCenter} from "@extension/src/interface/IExtensionCenter.sol";
 import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
 import {

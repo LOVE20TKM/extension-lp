@@ -6,12 +6,12 @@ import {
     ExtensionBaseRewardTokenJoin
 } from "@extension/src/ExtensionBaseRewardTokenJoin.sol";
 import {RoundHistoryUint256} from "@extension/src/lib/RoundHistoryUint256.sol";
+import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
+import {ILOVE20Stake} from "@core/interfaces/ILOVE20Stake.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {
     SafeERC20
 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
-import {ILOVE20Stake} from "@core/interfaces/ILOVE20Stake.sol";
 
 contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     using RoundHistoryUint256 for RoundHistoryUint256.History;
