@@ -14,7 +14,10 @@ import {ExtensionCenter} from "@extension/src/ExtensionCenter.sol";
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
-import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
+import {
+    ITokenJoin,
+    ITokenJoinErrors
+} from "@extension/src/interface/ITokenJoin.sol";
 
 // Import mock contracts
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -117,6 +120,9 @@ contract ExtensionLpTest is Test {
         // Set action info whiteListAddress to extension address
         submit.setActionInfo(address(token), ACTION_ID, address(extension));
 
+        // Set action author to extension creator (address(this) is the creator)
+        submit.setActionAuthor(address(token), ACTION_ID, address(this));
+
         // Set vote mock for auto-initialization
         vote.setVotedActionIds(address(token), join.currentRound(), ACTION_ID);
 
@@ -156,7 +162,7 @@ contract ExtensionLpTest is Test {
     function test_Initialize_RevertIfInvalidJoinTokenAddress() public {
         MockERC20 invalidStakeToken = new MockERC20();
 
-        vm.expectRevert(ITokenJoin.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ITokenJoinErrors.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(invalidStakeToken),
@@ -177,7 +183,7 @@ contract ExtensionLpTest is Test {
             uniswapFactory.createPair(address(token1), address(token2))
         );
 
-        vm.expectRevert(ITokenJoin.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ITokenJoinErrors.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(wrongPair),
@@ -432,7 +438,7 @@ contract ExtensionLpTest is Test {
     }
 
     function test_Factory_RevertIfInvalidJoinTokenAddress() public {
-        vm.expectRevert(ITokenJoin.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ITokenJoinErrors.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             address(token),
             address(0),

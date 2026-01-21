@@ -9,7 +9,10 @@ import {
 import {ExtensionLpFactory} from "../../src/ExtensionLpFactory.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
 import {ILpFactory, ILpFactoryErrors} from "../../src/interface/ILpFactory.sol";
-import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
+import {
+    ITokenJoin,
+    ITokenJoinErrors
+} from "@extension/src/interface/ITokenJoin.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {
@@ -133,7 +136,7 @@ contract FactoryTest is Test {
 
     function test_factory_revertIfInvalidJoinTokenAddress() public {
         ExtensionLpFactory factory = h.extensionFactory();
-        vm.expectRevert(ITokenJoin.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ITokenJoinErrors.InvalidJoinTokenAddress.selector);
         factory.createExtension(
             tokenAddress,
             address(0), // Invalid join token address
@@ -187,6 +190,8 @@ contract FactoryTest is Test {
         h.mint_action_reward_for_extension(bob, parentExtensionAddr);
 
         // Launch child token
+        // Ensure bob has enough tokens before staking
+        h.ensureUserHasMinimumTokensForStaking(bob);
         h.stake_liquidity(bob);
         vm.startPrank(bob.userAddress);
         address childTokenAddress = h.launchContract().launchToken(

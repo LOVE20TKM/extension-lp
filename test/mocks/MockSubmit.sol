@@ -36,6 +36,14 @@ contract MockSubmit {
             .whiteListAddress = whiteListAddress;
     }
 
+    function setActionAuthor(
+        address tokenAddress,
+        uint256 actionId,
+        address author
+    ) external {
+        _actionInfos[tokenAddress][actionId].head.author = author;
+    }
+
     function actionInfo(
         address tokenAddress,
         uint256 actionId

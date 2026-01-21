@@ -13,6 +13,9 @@ import {ExtensionCenter} from "@extension/src/ExtensionCenter.sol";
 import {ExtensionLpFactory} from "../src/ExtensionLpFactory.sol";
 import {ExtensionLp} from "../src/ExtensionLp.sol";
 import {ILp} from "../src/interface/ILp.sol";
+import {
+    IExtensionFactory
+} from "@extension/src/interface/IExtensionFactory.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {ILOVE20SLToken} from "@core/interfaces/ILOVE20SLToken.sol";
 import {
@@ -305,9 +308,54 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
         }
         uint256 userParentBal = IERC20(parentTokenAddr).balanceOf(user);
         if (userParentBal < parentTokenAmount) {
-            IMintable(parentTokenAddr).mint(
-                user,
-                parentTokenAmount - userParentBal
+            uint256 needed = parentTokenAmount - userParentBal;
+            if (parentTokenAddr == rootParentTokenAddress) {
+                vm.deal(user, needed);
+                vm.startPrank(user);
+                IETH20(rootParentTokenAddress).deposit{value: needed}();
+                vm.stopPrank();
+            } else {
+                IMintable(parentTokenAddr).mint(user, needed);
+            }
+        }
+    }
+
+    // Helper function to ensure user has minimum tokens before staking
+    function ensureUserHasMinimumTokensForStaking(
+        FlowUserParams memory p
+    ) public {
+        ILOVE20Token token = ILOVE20Token(p.tokenAddress);
+        address parentTokenAddr = token.parentTokenAddress();
+        uint256 tokenBalance = token.balanceOf(p.userAddress);
+        uint256 parentTokenBalance = IERC20(parentTokenAddr).balanceOf(
+            p.userAddress
+        );
+
+        // Calculate expected amounts
+        uint256 tokenAmountForLp = (tokenBalance *
+            p.stake.tokenAmountForLpPercent) / 100;
+        uint256 parentTokenAmountForLp = (parentTokenBalance *
+            p.stake.parentTokenAmountForLpPercent) / 100;
+
+        // Ensure minimum amounts to avoid StakeAmountMustBeSet error
+        uint256 minParentTokenAmount = 1e15; // Minimum 0.001 parent token
+        if (parentTokenAmountForLp == 0 && tokenAmountForLp > 0) {
+            // If parent token amount is 0 but token amount is not, ensure minimum parent token
+            _ensureUserHasTokens(
+                p.userAddress,
+                p.tokenAddress,
+                parentTokenAddr,
+                0,
+                minParentTokenAmount
+            );
+        } else if (parentTokenAmountForLp > 0) {
+            // Ensure user has enough tokens for the calculated amounts
+            _ensureUserHasTokens(
+                p.userAddress,
+                p.tokenAddress,
+                parentTokenAddr,
+                tokenAmountForLp,
+                parentTokenAmountForLp
             );
         }
     }
@@ -423,7 +471,96 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
         actionBody.verificationKeys = p.submit.verificationKeys;
         actionBody.verificationInfoGuides = p.submit.verificationInfoGuides;
 
-        vm.startPrank(p.userAddress);
+        // Get extension creator to ensure action author matches extension creator
+        address extensionCreator = IExtensionFactory(extensionFactory)
+            .extensionCreator(extensionAddress);
+
+        // Ensure extension creator has stake to submit
+        // Create a temporary FlowUserParams for extension creator
+        FlowUserParams memory creatorParams;
+        creatorParams.userAddress = extensionCreator;
+        creatorParams.tokenAddress = p.tokenAddress;
+        creatorParams.stake.tokenAmountForLpPercent = 50;
+        creatorParams.stake.parentTokenAmountForLpPercent = 50;
+        creatorParams.stake.tokenAmountPercent = 50;
+        creatorParams.stake.promisedWaitingPhases = 4;
+
+        // Check if extension creator can already submit, if not, set up stake with large amount
+        if (!submitContract.canSubmit(p.tokenAddress, extensionCreator)) {
+            address parentAddr = ILOVE20Token(p.tokenAddress)
+                .parentTokenAddress();
+            uint256 totalV = stakeContract.govVotesNum(p.tokenAddress);
+            uint256 minPer = submitContract.SUBMIT_MIN_PER_THOUSAND();
+            // Use a very large multiplier (50x) to ensure we exceed the threshold
+            // This accounts for complex gov votes calculation and ensures we have enough
+            uint256 needed = totalV > 0 ? (totalV * minPer * 50) / 1000 : 1e18;
+            // Start with a large base amount to ensure we have enough votes
+            uint256 amt = needed > 100000e18
+                ? (needed > 5000000e18 ? 5000000e18 : needed)
+                : 100000e18;
+
+            // Keep staking until canSubmit is true (with maximum iterations)
+            for (
+                uint256 iter = 0;
+                iter < 8 &&
+                    !submitContract.canSubmit(p.tokenAddress, extensionCreator);
+                iter++
+            ) {
+                // Ensure creator has enough tokens for this iteration
+                uint256 neededToken = amt * 2;
+                uint256 neededParent = amt;
+                if (
+                    IERC20(p.tokenAddress).balanceOf(extensionCreator) <
+                    neededToken
+                ) {
+                    forceMint(p.tokenAddress, extensionCreator, neededToken);
+                }
+                if (
+                    IERC20(parentAddr).balanceOf(extensionCreator) <
+                    neededParent
+                ) {
+                    if (parentAddr == rootParentTokenAddress) {
+                        vm.deal(extensionCreator, neededParent);
+                        vm.startPrank(extensionCreator);
+                        IETH20(rootParentTokenAddress).deposit{
+                            value: neededParent
+                        }();
+                        vm.stopPrank();
+                    } else {
+                        IMintable(parentAddr).mint(
+                            extensionCreator,
+                            neededParent
+                        );
+                    }
+                }
+
+                // Stake liquidity and token
+                vm.startPrank(extensionCreator);
+                IERC20(p.tokenAddress).approve(address(stakeContract), amt);
+                IERC20(parentAddr).approve(address(stakeContract), amt);
+                stakeContract.stakeLiquidity(
+                    p.tokenAddress,
+                    amt,
+                    amt,
+                    creatorParams.stake.promisedWaitingPhases,
+                    extensionCreator
+                );
+                IERC20(p.tokenAddress).approve(address(stakeContract), amt);
+                stakeContract.stakeToken(
+                    p.tokenAddress,
+                    amt,
+                    creatorParams.stake.promisedWaitingPhases,
+                    extensionCreator
+                );
+                vm.stopPrank();
+
+                // Double the amount for next iteration
+                amt = amt * 2;
+            }
+        }
+
+        // Submit action as extension creator
+        vm.startPrank(extensionCreator);
         actionId = submitContract.submitNewAction(p.tokenAddress, actionBody);
         vm.stopPrank();
 
