@@ -74,6 +74,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             return (0, 0);
         }
 
+        // prepare
         (uint256 totalActionReward, ) = _mint.actionRewardByActionIdByAccount(
             TOKEN_ADDRESS,
             round,
@@ -94,26 +95,27 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             return (0, 0);
         }
 
+        // calculate reward
         uint256 tokenRatio = (joinedAmount * PRECISION) / totalJoined;
         uint256 theoreticalReward = (totalActionReward * tokenRatio) /
             PRECISION;
-
-        uint256 ratio = tokenRatio;
-        if (GOV_RATIO_MULTIPLIER > 0) {
-            uint256 totalGovVotes = _stake.govVotesNum(TOKEN_ADDRESS);
-            if (totalGovVotes == 0) {
-                return (0, 0);
-            }
-            uint256 govVotes = _stake.validGovVotes(TOKEN_ADDRESS, account);
-            uint256 govVotesRatio = (govVotes *
-                PRECISION *
-                GOV_RATIO_MULTIPLIER) / totalGovVotes;
-            if (govVotesRatio < tokenRatio) {
-                ratio = govVotesRatio;
-            }
+        if (GOV_RATIO_MULTIPLIER == 0) {
+            return (theoreticalReward, 0);
         }
 
-        mintReward = (totalActionReward * ratio) / PRECISION;
+        // calculate burn reward
+        uint256 totalGovVotes = _stake.govVotesNum(TOKEN_ADDRESS);
+        if (totalGovVotes == 0) {
+            return (0, theoreticalReward);
+        }
+        uint256 govVotes = _stake.validGovVotes(TOKEN_ADDRESS, account);
+        uint256 govVotesRatio = (govVotes * PRECISION * GOV_RATIO_MULTIPLIER) /
+            totalGovVotes;
+        if (govVotesRatio >= tokenRatio) {
+            return (theoreticalReward, 0);
+        }
+
+        mintReward = (totalActionReward * govVotesRatio) / PRECISION;
         burnReward = theoreticalReward > mintReward
             ? theoreticalReward - mintReward
             : 0;

@@ -5,7 +5,10 @@ import {ILpFactory} from "./interface/ILpFactory.sol";
 import {ExtensionLp} from "./ExtensionLp.sol";
 import {ExtensionFactoryBase} from "@extension/src/ExtensionFactoryBase.sol";
 import {IExtensionCenter} from "@extension/src/interface/IExtensionCenter.sol";
-import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
+import {
+    ITokenJoin,
+    ITokenJoinErrors
+} from "@extension/src/interface/ITokenJoin.sol";
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
@@ -46,7 +49,7 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
         address joinLpTokenAddress
     ) internal view {
         if (joinLpTokenAddress == address(0)) {
-            revert ITokenJoin.InvalidJoinTokenAddress();
+            revert ITokenJoinErrors.InvalidJoinTokenAddress();
         }
 
         IExtensionCenter center = IExtensionCenter(CENTER_ADDRESS);
@@ -56,10 +59,10 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
             address pairFactory
         ) {
             if (pairFactory != uniswapV2FactoryAddress) {
-                revert ITokenJoin.InvalidJoinTokenAddress();
+                revert ITokenJoinErrors.InvalidJoinTokenAddress();
             }
         } catch {
-            revert ITokenJoin.InvalidJoinTokenAddress();
+            revert ITokenJoinErrors.InvalidJoinTokenAddress();
         }
         address pairToken0;
         address pairToken1;
@@ -68,17 +71,17 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
         ) {
             pairToken0 = token0;
         } catch {
-            revert ITokenJoin.InvalidJoinTokenAddress();
+            revert ITokenJoinErrors.InvalidJoinTokenAddress();
         }
         try IUniswapV2Pair(joinLpTokenAddress).token1() returns (
             address token1
         ) {
             pairToken1 = token1;
         } catch {
-            revert ITokenJoin.InvalidJoinTokenAddress();
+            revert ITokenJoinErrors.InvalidJoinTokenAddress();
         }
         if (pairToken0 != tokenAddress && pairToken1 != tokenAddress) {
-            revert ITokenJoin.InvalidJoinTokenAddress();
+            revert ITokenJoinErrors.InvalidJoinTokenAddress();
         }
     }
 }
