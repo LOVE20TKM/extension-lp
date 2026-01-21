@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-interface ILp {
-    error InsufficientGovVotes();
-
+interface ILpEvents {
     event BurnReward(
         address indexed tokenAddress,
         uint256 round,
@@ -11,7 +9,13 @@ interface ILp {
         address indexed account,
         uint256 amount
     );
+}
 
+interface ILpErrors {
+    error InsufficientGovVotes();
+}
+
+interface ILp is ILpEvents, ILpErrors {
     function GOV_RATIO_MULTIPLIER() external view returns (uint256);
 
     function MIN_GOV_VOTES() external view returns (uint256);

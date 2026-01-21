@@ -8,7 +8,7 @@ import {
 } from "../TestExtensionLpHelper.sol";
 import {ExtensionLpFactory} from "../../src/ExtensionLpFactory.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
-import {ILpFactory} from "../../src/interface/ILpFactory.sol";
+import {ILpFactory, ILpFactoryErrors} from "../../src/interface/ILpFactory.sol";
 import {ITokenJoin} from "@extension/src/interface/ITokenJoin.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -147,7 +147,7 @@ contract FactoryTest is Test {
         ExtensionLpFactory factory = h.extensionFactory();
         address pairAddress = h.getPairAddress(tokenAddress);
 
-        vm.expectRevert(ILpFactory.InvalidWaitingBlocks.selector);
+        vm.expectRevert(ILpFactoryErrors.InvalidWaitingBlocks.selector);
         factory.createExtension(tokenAddress, pairAddress, 0, 2, 1e18);
     }
 

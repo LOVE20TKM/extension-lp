@@ -7,7 +7,7 @@ import {
     FlowUserParams
 } from "../TestExtensionLpHelper.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
-import {ILp} from "../../src/interface/ILp.sol";
+import {ILp, ILpErrors} from "../../src/interface/ILp.sol";
 import {ILOVE20Token} from "@core/interfaces/ILOVE20Token.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {
@@ -80,7 +80,7 @@ contract GovVotesTest is Test {
 
             vm.startPrank(poorUser.userAddress);
             IERC20(address(lpToken)).approve(address(extension), lpAmount);
-            vm.expectRevert(ILp.InsufficientGovVotes.selector);
+            vm.expectRevert(ILpErrors.InsufficientGovVotes.selector);
             extension.join(lpAmount, new string[](0));
             vm.stopPrank();
         }

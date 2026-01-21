@@ -4,8 +4,8 @@ pragma solidity =0.8.17;
 import {Test, console} from "forge-std/Test.sol";
 import {ExtensionLp} from "../src/ExtensionLp.sol";
 import {ExtensionLpFactory} from "../src/ExtensionLpFactory.sol";
-import {ILp} from "../src/interface/ILp.sol";
-import {ILpFactory} from "../src/interface/ILpFactory.sol";
+import {ILp, ILpErrors} from "../src/interface/ILp.sol";
+import {ILpFactory, ILpFactoryErrors} from "../src/interface/ILpFactory.sol";
 import {
     IExtensionFactory
 } from "@extension/src/interface/IExtensionFactory.sol";
@@ -443,7 +443,7 @@ contract ExtensionLpTest is Test {
     }
 
     function test_Factory_RevertIfInvalidWaitingBlocks() public {
-        vm.expectRevert(ILpFactory.InvalidWaitingBlocks.selector);
+        vm.expectRevert(ILpFactoryErrors.InvalidWaitingBlocks.selector);
         factory.createExtension(
             address(token),
             address(joinToken),
@@ -466,7 +466,7 @@ contract ExtensionLpTest is Test {
         stake.setValidGovVotes(address(token), poorUser, MIN_GOV_VOTES - 1);
 
         vm.prank(poorUser);
-        vm.expectRevert(ILp.InsufficientGovVotes.selector);
+        vm.expectRevert(ILpErrors.InsufficientGovVotes.selector);
         extension.join(100e18, new string[](0));
     }
 
