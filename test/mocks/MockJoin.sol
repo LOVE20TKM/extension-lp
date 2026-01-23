@@ -7,6 +7,8 @@ pragma solidity =0.8.17;
  */
 contract MockJoin {
     uint256 internal _currentRound = 1;
+    uint256 internal _originBlocks = 0;
+    uint256 internal _phaseBlocks = 100;
     mapping(address => mapping(uint256 => mapping(address => uint256)))
         internal _amounts;
 
@@ -25,6 +27,22 @@ contract MockJoin {
 
     function currentRound() external view returns (uint256) {
         return _currentRound;
+    }
+
+    function originBlocks() external view returns (uint256) {
+        return _originBlocks;
+    }
+
+    function phaseBlocks() external view returns (uint256) {
+        return _phaseBlocks;
+    }
+
+    function setOriginBlocks(uint256 originBlocks_) external {
+        _originBlocks = originBlocks_;
+    }
+
+    function setPhaseBlocks(uint256 phaseBlocks_) external {
+        _phaseBlocks = phaseBlocks_;
     }
 
     function amountByActionIdByAccount(

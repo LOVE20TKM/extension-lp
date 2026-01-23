@@ -49,7 +49,6 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
     FlowUserParams public bob;
     FlowUserParams public alice;
 
-    uint256 public constant DEFAULT_WAITING_BLOCKS = 7;
     uint256 public constant DEFAULT_GOV_RATIO_MULTIPLIER = 2;
     uint256 public constant DEFAULT_MIN_GOV_VOTES = 1e18;
 
@@ -160,7 +159,6 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
 
     function createExtension(
         address tokenAddress,
-        uint256 waitingBlocks,
         uint256 govRatioMultiplier,
         uint256 minGovVotes
     ) public returns (ExtensionLp) {
@@ -176,7 +174,6 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
         address extensionAddress = extensionFactory.createExtension(
             tokenAddress,
             pairAddress,
-            waitingBlocks,
             govRatioMultiplier,
             minGovVotes
         );
@@ -193,7 +190,6 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
         return
             createExtension(
                 tokenAddress,
-                DEFAULT_WAITING_BLOCKS,
                 DEFAULT_GOV_RATIO_MULTIPLIER,
                 DEFAULT_MIN_GOV_VOTES
             );

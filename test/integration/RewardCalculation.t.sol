@@ -33,7 +33,6 @@ contract RewardCalculationTest is Test {
         // Use a very low MIN_GOV_VOTES to make testing easier (users already have some gov votes from initial stake)
         extension = h.createExtension(
             tokenAddress,
-            7,
             2, // GOV_RATIO_MULTIPLIER = 2
             1e12 // MIN_GOV_VOTES = 1e12 (very low for testing)
         );
@@ -131,7 +130,7 @@ contract RewardCalculationTest is Test {
 
     function test_rewardCalculation_withGovRatioMultiplier() public {
         // Create extension with gov ratio multiplier = 2
-        h.createExtension(tokenAddress, 7, 2, 1e18);
+        h.createExtension(tokenAddress, 2, 1e18);
 
         // Use the existing action from setUp, but need to ensure it's for the new extension
         // Since we can't submit another action in the same round, we'll use the existing extension

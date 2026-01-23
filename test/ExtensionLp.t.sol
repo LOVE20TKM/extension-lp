@@ -5,7 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {ExtensionLp} from "../src/ExtensionLp.sol";
 import {ExtensionLpFactory} from "../src/ExtensionLpFactory.sol";
 import {ILp, ILpErrors} from "../src/interface/ILp.sol";
-import {ILpFactory, ILpFactoryErrors} from "../src/interface/ILpFactory.sol";
+import {ILpFactory} from "../src/interface/ILpFactory.sol";
 import {
     IExtensionFactory
 } from "@extension/src/interface/IExtensionFactory.sol";
@@ -61,7 +61,6 @@ contract ExtensionLpTest is Test {
     address public user3 = address(0x3);
 
     uint256 constant ACTION_ID = 1;
-    uint256 constant WAITING_BLOCKS = 7;
     uint256 constant GOV_RATIO_MULTIPLIER = 2;
     uint256 constant MIN_GOV_VOTES = 1e18;
 
@@ -108,7 +107,6 @@ contract ExtensionLpTest is Test {
             factory.createExtension(
                 address(token),
                 address(joinToken),
-                WAITING_BLOCKS,
                 GOV_RATIO_MULTIPLIER,
                 MIN_GOV_VOTES
             )
@@ -153,6 +151,16 @@ contract ExtensionLpTest is Test {
 
         // Mint tokens to extension for rewards
         token.mint(address(extension), 10000e18);
+
+        // Setup block configuration for join contract
+        // Set originBlocks to 0 and phaseBlocks to 100
+        // Round 0: blocks 0-99, Round 1: blocks 100-199, etc.
+        join.setOriginBlocks(0);
+        join.setPhaseBlocks(100);
+        
+        // Set block.number to be at the start of round 1 (block 100)
+        // This ensures users join at the start of the round, so blockRatio = 1
+        vm.roll(100);
     }
 
     // ============================================
@@ -166,7 +174,6 @@ contract ExtensionLpTest is Test {
         factory.createExtension(
             address(token),
             address(invalidStakeToken),
-            WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
             MIN_GOV_VOTES
         );
@@ -187,7 +194,6 @@ contract ExtensionLpTest is Test {
         factory.createExtension(
             address(token),
             address(wrongPair),
-            WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
             MIN_GOV_VOTES
         );
@@ -200,7 +206,7 @@ contract ExtensionLpTest is Test {
     function test_ImmutableVariables_GovRatioMultiplier() public view {
         assertEq(extension.GOV_RATIO_MULTIPLIER(), GOV_RATIO_MULTIPLIER);
         assertEq(extension.JOIN_TOKEN_ADDRESS(), address(joinToken));
-        assertEq(extension.WAITING_BLOCKS(), WAITING_BLOCKS);
+        assertEq(extension.WAITING_BLOCKS(), 1);
     }
 
     // ============================================
@@ -340,7 +346,6 @@ contract ExtensionLpTest is Test {
         address newExtension = factory.createExtension(
             address(token),
             address(joinToken),
-            WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
             MIN_GOV_VOTES
         );
@@ -364,7 +369,6 @@ contract ExtensionLpTest is Test {
         address extension2 = factory.createExtension(
             address(token),
             address(joinToken2),
-            WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
             MIN_GOV_VOTES
         );
@@ -390,7 +394,6 @@ contract ExtensionLpTest is Test {
         address extension2 = factory.createExtension(
             address(token),
             address(joinToken2),
-            WAITING_BLOCKS,
             GOV_RATIO_MULTIPLIER,
             MIN_GOV_VOTES
         );
@@ -417,7 +420,7 @@ contract ExtensionLpTest is Test {
         );
         assertEq(
             extension.WAITING_BLOCKS(),
-            WAITING_BLOCKS,
+            1,
             "WAITING_BLOCKS mismatch"
         );
         assertEq(
@@ -442,18 +445,6 @@ contract ExtensionLpTest is Test {
         factory.createExtension(
             address(token),
             address(0),
-            WAITING_BLOCKS,
-            GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES
-        );
-    }
-
-    function test_Factory_RevertIfInvalidWaitingBlocks() public {
-        vm.expectRevert(ILpFactoryErrors.InvalidWaitingBlocks.selector);
-        factory.createExtension(
-            address(token),
-            address(joinToken),
-            0,
             GOV_RATIO_MULTIPLIER,
             MIN_GOV_VOTES
         );

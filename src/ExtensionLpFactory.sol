@@ -14,18 +14,16 @@ import {
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
 
 contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
+    uint256 public constant DEFAULT_WAITING_BLOCKS = 1;
+
     constructor(address _center) ExtensionFactoryBase(_center) {}
 
     function createExtension(
         address tokenAddress,
         address joinLpTokenAddress,
-        uint256 waitingBlocks,
         uint256 govRatioMultiplier,
         uint256 minGovVotes
     ) external returns (address extension) {
-        if (waitingBlocks == 0) {
-            revert InvalidWaitingBlocks();
-        }
         _validateJoinLpTokenAddress(tokenAddress, joinLpTokenAddress);
 
         extension = address(
@@ -33,7 +31,7 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
                 address(this),
                 tokenAddress,
                 joinLpTokenAddress,
-                waitingBlocks,
+                DEFAULT_WAITING_BLOCKS,
                 govRatioMultiplier,
                 minGovVotes
             )

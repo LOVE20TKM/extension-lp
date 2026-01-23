@@ -32,7 +32,7 @@ contract EdgeCasesTest is Test {
         extension = h.createExtensionWithDefaults(tokenAddress);
 
         // Create extension with MIN_GOV_VOTES = 0 for test_extension_minGovVotes_zero
-        extensionZeroMin = h.createExtension(tokenAddress, 7, 2, 0);
+        extensionZeroMin = h.createExtension(tokenAddress, 2, 0);
 
         // Setup action with extension address as whiteListAddress
         h.stake_liquidity(bob);

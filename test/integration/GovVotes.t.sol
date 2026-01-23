@@ -32,7 +32,6 @@ contract GovVotesTest is Test {
         // Create extension with MIN_GOV_VOTES = 1e18
         extension = h.createExtension(
             tokenAddress,
-            7,
             2,
             1e18 // MIN_GOV_VOTES
         );

@@ -8,7 +8,7 @@ import {
 } from "../TestExtensionLpHelper.sol";
 import {ExtensionLpFactory} from "../../src/ExtensionLpFactory.sol";
 import {ExtensionLp} from "../../src/ExtensionLp.sol";
-import {ILpFactory, ILpFactoryErrors} from "../../src/interface/ILpFactory.sol";
+import {ILpFactory} from "../../src/interface/ILpFactory.sol";
 import {
     ITokenJoin,
     ITokenJoinErrors
@@ -32,7 +32,7 @@ contract FactoryTest is Test {
     }
 
     function test_factory_createExtension() public {
-        ExtensionLp extension = h.createExtension(tokenAddress, 7, 2, 1e18);
+        ExtensionLp extension = h.createExtension(tokenAddress, 2, 1e18);
 
         ExtensionLpFactory factory = h.extensionFactory();
         assertTrue(
@@ -43,9 +43,9 @@ contract FactoryTest is Test {
     }
 
     function test_factory_createMultipleExtensions() public {
-        ExtensionLp extension1 = h.createExtension(tokenAddress, 7, 2, 1e18);
+        ExtensionLp extension1 = h.createExtension(tokenAddress, 2, 1e18);
 
-        ExtensionLp extension2 = h.createExtension(tokenAddress, 10, 3, 2e18);
+        ExtensionLp extension2 = h.createExtension(tokenAddress, 3, 2e18);
 
         ExtensionLpFactory factory = h.extensionFactory();
         assertTrue(
@@ -60,13 +60,11 @@ contract FactoryTest is Test {
     }
 
     function test_factory_extensionParams() public {
-        uint256 waitingBlocks = 7;
         uint256 govRatioMultiplier = 2;
         uint256 minGovVotes = 1e18;
 
         ExtensionLp extension = h.createExtension(
             tokenAddress,
-            waitingBlocks,
             govRatioMultiplier,
             minGovVotes
         );
@@ -78,7 +76,7 @@ contract FactoryTest is Test {
         );
         assertEq(
             extension.WAITING_BLOCKS(),
-            waitingBlocks,
+            1,
             "WAITING_BLOCKS should match"
         );
         assertEq(
@@ -99,8 +97,8 @@ contract FactoryTest is Test {
     }
 
     function test_factory_extensions() public {
-        ExtensionLp extension1 = h.createExtension(tokenAddress, 7, 2, 1e18);
-        ExtensionLp extension2 = h.createExtension(tokenAddress, 10, 3, 2e18);
+        ExtensionLp extension1 = h.createExtension(tokenAddress, 2, 1e18);
+        ExtensionLp extension2 = h.createExtension(tokenAddress, 3, 2e18);
 
         ExtensionLpFactory factory = h.extensionFactory();
         address[] memory extensions = factory.extensions();
@@ -118,8 +116,8 @@ contract FactoryTest is Test {
     }
 
     function test_factory_extensionsAtIndex() public {
-        ExtensionLp extension1 = h.createExtension(tokenAddress, 7, 2, 1e18);
-        ExtensionLp extension2 = h.createExtension(tokenAddress, 10, 3, 2e18);
+        ExtensionLp extension1 = h.createExtension(tokenAddress, 2, 1e18);
+        ExtensionLp extension2 = h.createExtension(tokenAddress, 3, 2e18);
 
         ExtensionLpFactory factory = h.extensionFactory();
         assertEq(
@@ -140,18 +138,9 @@ contract FactoryTest is Test {
         factory.createExtension(
             tokenAddress,
             address(0), // Invalid join token address
-            7,
             2,
             1e18
         );
-    }
-
-    function test_factory_revertIfInvalidWaitingBlocks() public {
-        ExtensionLpFactory factory = h.extensionFactory();
-        address pairAddress = h.getPairAddress(tokenAddress);
-
-        vm.expectRevert(ILpFactoryErrors.InvalidWaitingBlocks.selector);
-        factory.createExtension(tokenAddress, pairAddress, 0, 2, 1e18);
     }
 
     function test_factory_center() public view {

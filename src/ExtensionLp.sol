@@ -96,11 +96,29 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         }
 
         // calculate reward
-        uint256 tokenRatio = (joinedAmount * PRECISION) / totalJoined;
-        uint256 theoreticalReward = (totalActionReward * tokenRatio) /
-            PRECISION;
+        uint256 lpRatio = (joinedAmount * PRECISION) / totalJoined;
+        uint256 theoreticalReward = (totalActionReward * lpRatio) / PRECISION;
+
+        // calculate block ratio only if this is the join round
+        uint256 blockRatio = PRECISION;
+        if (_joinedRoundByAccount[account] == round) {
+            uint256 phaseBlocks = _join.phaseBlocks();
+            uint256 roundEndBlock = _join.originBlocks() +
+                (round + 1) *
+                phaseBlocks -
+                1;
+            uint256 joinedBlock = _joinedBlockByAccount[account];
+            uint256 blocksInRound = roundEndBlock - joinedBlock + 1;
+            blockRatio = (blocksInRound * PRECISION) / phaseBlocks;
+        }
+
         if (GOV_RATIO_MULTIPLIER == 0) {
-            return (theoreticalReward, 0);
+            uint256 adjustedTheoreticalReward = (theoreticalReward *
+                blockRatio) / PRECISION;
+            return (
+                adjustedTheoreticalReward,
+                theoreticalReward - adjustedTheoreticalReward
+            );
         }
 
         // calculate burn reward
@@ -111,14 +129,16 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         uint256 govVotes = _stake.validGovVotes(TOKEN_ADDRESS, account);
         uint256 govVotesRatio = (govVotes * PRECISION * GOV_RATIO_MULTIPLIER) /
             totalGovVotes;
-        if (govVotesRatio >= tokenRatio) {
-            return (theoreticalReward, 0);
-        }
 
-        mintReward = (totalActionReward * govVotesRatio) / PRECISION;
-        burnReward = theoreticalReward > mintReward
-            ? theoreticalReward - mintReward
-            : 0;
+        uint256 effectiveRatio = lpRatio < govVotesRatio
+            ? lpRatio
+            : govVotesRatio;
+        uint256 adjustedEffectiveRatio = blockRatio == PRECISION
+            ? effectiveRatio
+            : (effectiveRatio * blockRatio) / PRECISION;
+
+        mintReward = (totalActionReward * adjustedEffectiveRatio) / PRECISION;
+        burnReward = theoreticalReward - mintReward;
 
         return (mintReward, burnReward);
     }
