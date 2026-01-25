@@ -51,7 +51,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         uint256 amount,
         string[] memory verificationInfos
     ) public virtual override(ExtensionBaseRewardTokenJoin) {
-        bool isFirstJoin = _joinedBlockByAccount[msg.sender] == 0;
+        bool isFirstJoin = _lastJoinedBlockByAccount[msg.sender] == 0;
 
         if (isFirstJoin) {
             uint256 userGovVotes = _stake.validGovVotes(
@@ -107,7 +107,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
                 (round + 1) *
                 phaseBlocks -
                 1;
-            uint256 joinedBlock = _joinedBlockByAccount[account];
+            uint256 joinedBlock = _lastJoinedBlockByAccount[account];
             uint256 blocksInRound = roundEndBlock - joinedBlock + 1;
             blockRatio = (blocksInRound * PRECISION) / phaseBlocks;
         }
