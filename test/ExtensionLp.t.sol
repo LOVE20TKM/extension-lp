@@ -504,4 +504,263 @@ contract ExtensionLpTest is Test {
     function test_ImmutableVariables_MinGovVotes() public view {
         assertEq(extension.MIN_GOV_VOTES(), MIN_GOV_VOTES);
     }
+
+    // ============================================
+    // BurnRewardIfNeeded Tests
+    // ============================================
+
+    function test_BurnRewardIfNeeded_NoParticipants_BurnAllReward() public {
+        // Ensure extension is initialized (actionId is set)
+        token.mint(address(extension), 1e18);
+        extension.initializeIfNeeded();
+        
+        // Setup: no one joins in round 0
+        uint256 round = verify.currentRound();
+        
+        // Advance to next round to make round 0 finished
+        verify.setCurrentRound(round + 1);
+        
+        // Set action reward for round 0
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, ACTION_ID, totalReward);
+        
+        // Get initial balances
+        uint256 initialSupply = token.totalSupply();
+        uint256 initialExtensionBalance = token.balanceOf(address(extension));
+        
+        // Call burnRewardIfNeeded - this will call _prepareRewardIfNeeded which calls mintActionReward
+        // But MockMint doesn't actually mint, so we need to manually mint tokens to extension
+        // The burnRewardIfNeeded will prepare the reward first, then calculate burn amount
+        // Since no one participated, it should burn all reward
+        // But extension needs to have the tokens to burn
+        token.mint(address(extension), totalReward);
+        
+        // Call burnRewardIfNeeded - should burn all reward since no one participated
+        extension.burnRewardIfNeeded(round);
+        
+        // Verify token supply decreased by totalReward
+        assertEq(
+            token.totalSupply(),
+            initialSupply,
+            "Token supply should decrease by totalReward (minted then burned)"
+        );
+        
+        // Verify extension balance decreased by totalReward
+        assertEq(
+            token.balanceOf(address(extension)),
+            initialExtensionBalance,
+            "Extension balance should decrease by totalReward"
+        );
+        
+        // Verify burnInfo
+        (uint256 burnAmount, bool burned) = extension.burnInfo(round);
+        assertEq(burnAmount, totalReward, "burnAmount should equal totalReward");
+        assertTrue(burned, "Should be marked as burned");
+    }
+
+    function test_BurnRewardIfNeeded_WithParticipants_NoBurn() public {
+        // Setup: user1 joins in round 0
+        vm.prank(user1);
+        extension.join(100e18, new string[](0));
+        
+        uint256 round = verify.currentRound();
+        
+        // Advance to next round to make round 0 finished
+        verify.setCurrentRound(round + 1);
+        
+        // Set action reward for round 0
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, ACTION_ID, totalReward);
+        
+        // Ensure extension has enough tokens
+        token.mint(address(extension), totalReward);
+        
+        // Get initial token supply
+        uint256 initialSupply = token.totalSupply();
+        
+        // Call burnRewardIfNeeded - should not burn since someone participated
+        extension.burnRewardIfNeeded(round);
+        
+        // Verify token supply unchanged (burning is handled by participants during claim)
+        assertEq(
+            token.totalSupply(),
+            initialSupply,
+            "Token supply should not change"
+        );
+        
+        // Verify burnInfo
+        (uint256 burnAmount, bool burned) = extension.burnInfo(round);
+        assertEq(burnAmount, 0, "burnAmount should be 0");
+        assertFalse(burned, "Should not be marked as burned");
+    }
+
+    function test_BurnRewardIfNeeded_WithParticipants_ThenClaim_BurnByParticipant() public {
+        // Setup: user1 joins in round 0
+        vm.prank(user1);
+        extension.join(100e18, new string[](0));
+        
+        uint256 round = verify.currentRound();
+        
+        // Advance to next round to make round 0 finished
+        verify.setCurrentRound(round + 1);
+        
+        // Set action reward for round 0
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, ACTION_ID, totalReward);
+        
+        // Ensure extension has enough tokens
+        token.mint(address(extension), totalReward);
+        
+        // Get initial token supply
+        uint256 initialSupply = token.totalSupply();
+        
+        // Call burnRewardIfNeeded - should not burn
+        extension.burnRewardIfNeeded(round);
+        assertEq(token.totalSupply(), initialSupply, "No burn from burnRewardIfNeeded");
+        
+        // User1 claims reward - this should burn their portion
+        vm.prank(user1);
+        extension.claimReward(round);
+        
+        // Verify token supply decreased (burnReward was burned during claim)
+        // User1: tokenRatio = 1e18, govRatio = 2e17, score = 2e17
+        // mintReward = 1000e18 * 2e17 / 1e18 = 200e18
+        // theoreticalReward = 1000e18 * 1e18 / 1e18 = 1000e18
+        // burnReward = 1000e18 - 200e18 = 800e18
+        uint256 expectedBurn = 800e18;
+        assertEq(
+            token.totalSupply(),
+            initialSupply - expectedBurn,
+            "Token supply should decrease by burnReward"
+        );
+    }
+
+    function test_BurnRewardIfNeeded_ZeroReward_NoBurn() public {
+        uint256 round = verify.currentRound();
+        
+        // Advance to next round
+        verify.setCurrentRound(round + 1);
+        
+        // Set zero action reward
+        mint.setActionReward(address(token), round, ACTION_ID, 0);
+        
+        uint256 initialSupply = token.totalSupply();
+        
+        // Call burnRewardIfNeeded - should not burn anything
+        extension.burnRewardIfNeeded(round);
+        
+        // Verify token supply unchanged
+        assertEq(
+            token.totalSupply(),
+            initialSupply,
+            "Token supply should not change"
+        );
+        
+        // Verify burnInfo
+        (uint256 burnAmount, bool burned) = extension.burnInfo(round);
+        assertEq(burnAmount, 0, "burnAmount should be 0");
+        assertFalse(burned, "Should not be marked as burned");
+    }
+
+    function test_BurnRewardIfNeeded_Idempotency() public {
+        // Ensure extension is initialized (actionId is set)
+        token.mint(address(extension), 1e18);
+        extension.initializeIfNeeded();
+        
+        uint256 round = verify.currentRound();
+        
+        // Advance to next round
+        verify.setCurrentRound(round + 1);
+        
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, ACTION_ID, totalReward);
+        
+        // Mint tokens to extension for burning
+        token.mint(address(extension), totalReward);
+        
+        uint256 initialSupply = token.totalSupply();
+        
+        // First call
+        extension.burnRewardIfNeeded(round);
+        uint256 supplyAfterFirst = token.totalSupply();
+        
+        // Second call - should be idempotent (won't burn again)
+        extension.burnRewardIfNeeded(round);
+        uint256 supplyAfterSecond = token.totalSupply();
+        
+        // Verify both calls burned the same amount (or second call did nothing)
+        assertEq(
+            supplyAfterFirst,
+            supplyAfterSecond,
+            "Second call should not burn again"
+        );
+        assertEq(
+            initialSupply - supplyAfterFirst,
+            totalReward,
+            "Should burn totalReward only once"
+        );
+    }
+
+    function test_BurnRewardIfNeeded_RevertIfRoundNotFinished() public {
+        uint256 currentRound = verify.currentRound();
+        
+        // Try to burn reward for current round (not finished yet)
+        vm.expectRevert();
+        extension.burnRewardIfNeeded(currentRound);
+    }
+
+    function test_BurnInfo_NoParticipants_ReturnsTotalReward() public {
+        // Ensure extension is initialized (actionId is set)
+        token.mint(address(extension), 1e18);
+        extension.initializeIfNeeded();
+        
+        uint256 round = verify.currentRound();
+        
+        // Advance to next round
+        verify.setCurrentRound(round + 1);
+        
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, ACTION_ID, totalReward);
+        
+        // Before burning - burnInfo should calculate based on _calculateBurnAmount
+        // Since no one participated, it should return totalReward
+        (uint256 burnAmount, bool burned) = extension.burnInfo(round);
+        assertEq(burnAmount, totalReward, "burnAmount should equal totalReward");
+        assertFalse(burned, "Should not be burned yet");
+        
+        // After burning
+        token.mint(address(extension), totalReward);
+        extension.burnRewardIfNeeded(round);
+        
+        (burnAmount, burned) = extension.burnInfo(round);
+        assertEq(burnAmount, totalReward, "burnAmount should equal totalReward");
+        assertTrue(burned, "Should be burned");
+    }
+
+    function test_BurnInfo_WithParticipants_ReturnsZero() public {
+        // Setup: user1 joins
+        vm.prank(user1);
+        extension.join(100e18, new string[](0));
+        
+        uint256 round = verify.currentRound();
+        
+        // Advance to next round
+        verify.setCurrentRound(round + 1);
+        
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, ACTION_ID, totalReward);
+        
+        // burnInfo should return 0 since someone participated
+        (uint256 burnAmount, bool burned) = extension.burnInfo(round);
+        assertEq(burnAmount, 0, "burnAmount should be 0");
+        assertFalse(burned, "Should not be burned");
+    }
+
+    function test_BurnInfo_CurrentRound_ReturnsZero() public {
+        uint256 currentRound = verify.currentRound();
+        
+        (uint256 burnAmount, bool burned) = extension.burnInfo(currentRound);
+        assertEq(burnAmount, 0, "burnAmount should be 0 for current round");
+        assertFalse(burned, "Should not be burned for current round");
+    }
 }

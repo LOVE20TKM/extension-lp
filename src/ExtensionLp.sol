@@ -26,7 +26,8 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     ILOVE20Stake internal immutable _stake;
 
     /// @dev round => account => burnReward (recorded at claim time)
-    mapping(uint256 => mapping(address => uint256)) internal _burnedReward;
+    mapping(uint256 => mapping(address => uint256))
+        internal _burnedRewardByAccount;
 
     constructor(
         address factory_,
@@ -154,7 +155,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     function _claimReward(
         uint256 round
     ) internal virtual override returns (uint256 amount) {
-        if (_claimed[round][msg.sender]) {
+        if (_claimedByAccount[round][msg.sender]) {
             revert AlreadyClaimed();
         }
 
@@ -164,9 +165,9 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         );
         amount = mintReward;
 
-        _claimed[round][msg.sender] = true;
-        _claimedReward[round][msg.sender] = amount;
-        _burnedReward[round][msg.sender] = burnReward;
+        _claimedByAccount[round][msg.sender] = true;
+        _claimedRewardByAccount[round][msg.sender] = amount;
+        _burnedRewardByAccount[round][msg.sender] = burnReward;
 
         if (amount > 0) {
             IERC20(TOKEN_ADDRESS).safeTransfer(msg.sender, amount);
@@ -200,15 +201,32 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         view
         returns (uint256 mintReward, uint256 burnReward, bool isClaimed)
     {
-        if (_claimed[round][account]) {
+        if (_claimedByAccount[round][account]) {
             return (
-                _claimedReward[round][account],
-                _burnedReward[round][account],
+                _claimedRewardByAccount[round][account],
+                _burnedRewardByAccount[round][account],
                 true
             );
         }
 
         (mintReward, burnReward) = _calculateRewardBreakdown(round, account);
         return (mintReward, burnReward, false);
+    }
+
+    function _calculateBurnAmount(
+        uint256 round,
+        uint256 totalReward
+    ) internal view virtual override returns (uint256) {
+        if (totalReward == 0) return 0;
+
+        uint256 totalJoined = _joinedAmountHistory.value(round);
+
+        // If no one participated, burn all reward
+        if (totalJoined == 0) {
+            return totalReward;
+        }
+
+        // If someone participated, burning is handled by each participant during claim
+        return 0;
     }
 }
