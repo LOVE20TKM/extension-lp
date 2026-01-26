@@ -98,6 +98,9 @@ contract ExtensionLpTest is Test {
         // Deploy factory
         factory = new ExtensionLpFactory(address(center));
 
+        // Set token as LOVE20 token in launch mock
+        launch.setLOVE20Token(address(token), true);
+
         // Mint and approve tokens for extension creation
         token.mint(address(this), 1e18);
         token.approve(address(factory), 1e18);

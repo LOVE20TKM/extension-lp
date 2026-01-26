@@ -6,6 +6,13 @@ pragma solidity =0.8.17;
  * @dev Mock Launch contract for unit testing
  */
 contract MockLaunch {
-    // Minimal implementation for LOVE20ExtensionCenter compatibility
-    // No specific methods needed for extension testing
+    mapping(address => bool) private _isLOVE20Token;
+
+    function isLOVE20Token(address tokenAddress) external view returns (bool) {
+        return _isLOVE20Token[tokenAddress];
+    }
+
+    function setLOVE20Token(address tokenAddress, bool isLOVE20) external {
+        _isLOVE20Token[tokenAddress] = isLOVE20;
+    }
 }
