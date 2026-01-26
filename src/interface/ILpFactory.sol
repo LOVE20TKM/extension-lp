@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-interface ILpFactory {
+interface ILpFactoryErrors {
+    error InvalidJoinTokenFactory();
+    error InvalidJoinTokenPair();
+}
+
+interface ILpFactory is ILpFactoryErrors {
     function createExtension(
         address tokenAddress,
         address joinLpTokenAddress,

@@ -5,7 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {ExtensionLp} from "../src/ExtensionLp.sol";
 import {ExtensionLpFactory} from "../src/ExtensionLpFactory.sol";
 import {ILp, ILpErrors} from "../src/interface/ILp.sol";
-import {ILpFactory} from "../src/interface/ILpFactory.sol";
+import {ILpFactory, ILpFactoryErrors} from "../src/interface/ILpFactory.sol";
 import {
     IExtensionFactory
 } from "@extension/src/interface/IExtensionFactory.sol";
@@ -170,7 +170,7 @@ contract ExtensionLpTest is Test {
     function test_Initialize_RevertIfInvalidJoinTokenAddress() public {
         MockERC20 invalidStakeToken = new MockERC20();
 
-        vm.expectRevert(ITokenJoinErrors.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ILpFactoryErrors.InvalidJoinTokenFactory.selector);
         factory.createExtension(
             address(token),
             address(invalidStakeToken),
@@ -190,7 +190,7 @@ contract ExtensionLpTest is Test {
             uniswapFactory.createPair(address(token1), address(token2))
         );
 
-        vm.expectRevert(ITokenJoinErrors.InvalidJoinTokenAddress.selector);
+        vm.expectRevert(ILpFactoryErrors.InvalidJoinTokenPair.selector);
         factory.createExtension(
             address(token),
             address(wrongPair),
