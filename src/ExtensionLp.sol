@@ -17,6 +17,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     using RoundHistoryUint256 for RoundHistoryUint256.History;
     using SafeERC20 for IERC20;
 
+    uint256 public constant DEFAULT_WAITING_BLOCKS = 1;
     uint256 internal constant PRECISION = 1e18;
 
     uint256 public immutable GOV_RATIO_MULTIPLIER;
@@ -31,7 +32,6 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         address factory_,
         address tokenAddress_,
         address joinTokenAddress_,
-        uint256 waitingBlocks_,
         uint256 govRatioMultiplier_,
         uint256 minGovVotes_
     )
@@ -39,7 +39,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             factory_,
             tokenAddress_,
             joinTokenAddress_,
-            waitingBlocks_
+            DEFAULT_WAITING_BLOCKS
         )
     {
         GOV_RATIO_MULTIPLIER = govRatioMultiplier_;

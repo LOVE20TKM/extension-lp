@@ -5,17 +5,12 @@ import {ILpFactory} from "./interface/ILpFactory.sol";
 import {ExtensionLp} from "./ExtensionLp.sol";
 import {ExtensionFactoryBase} from "@extension/src/ExtensionFactoryBase.sol";
 import {IExtensionCenter} from "@extension/src/interface/IExtensionCenter.sol";
-import {
-    ITokenJoin,
-    ITokenJoinErrors
-} from "@extension/src/interface/ITokenJoin.sol";
+import {ITokenJoinErrors} from "@extension/src/interface/ITokenJoin.sol";
 import {
     IUniswapV2Pair
 } from "@core/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
 
 contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
-    uint256 public constant DEFAULT_WAITING_BLOCKS = 1;
-
     constructor(address _center) ExtensionFactoryBase(_center) {}
 
     function createExtension(
@@ -31,7 +26,6 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
                 address(this),
                 tokenAddress,
                 joinLpTokenAddress,
-                DEFAULT_WAITING_BLOCKS,
                 govRatioMultiplier,
                 minGovVotes
             )
