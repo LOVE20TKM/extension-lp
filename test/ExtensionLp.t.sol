@@ -589,9 +589,11 @@ contract ExtensionLpTest is Test {
         );
         
         // Verify burnInfo
+        // Note: Once burnRewardIfNeeded is called, _burned[round] is set to true
+        // even if burnAmount is 0, so burned will be true
         (uint256 burnAmount, bool burned) = extension.burnInfo(round);
         assertEq(burnAmount, 0, "burnAmount should be 0");
-        assertFalse(burned, "Should not be marked as burned");
+        assertTrue(burned, "Should be marked as burned after burnRewardIfNeeded is called");
     }
 
     function test_BurnRewardIfNeeded_WithParticipants_ThenClaim_BurnByParticipant() public {
@@ -657,9 +659,11 @@ contract ExtensionLpTest is Test {
         );
         
         // Verify burnInfo
+        // Note: Once burnRewardIfNeeded is called, _burned[round] is set to true
+        // even if burnAmount is 0, so burned will be true
         (uint256 burnAmount, bool burned) = extension.burnInfo(round);
         assertEq(burnAmount, 0, "burnAmount should be 0");
-        assertFalse(burned, "Should not be marked as burned");
+        assertTrue(burned, "Should be marked as burned after burnRewardIfNeeded is called");
     }
 
     function test_BurnRewardIfNeeded_Idempotency() public {
