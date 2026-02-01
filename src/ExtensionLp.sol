@@ -29,6 +29,10 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     mapping(uint256 => mapping(address => uint256))
         internal _burnedRewardByAccount;
 
+    /// @dev round => account => last joined block in that round (0 means not joined in that round)
+    mapping(uint256 => mapping(address => uint256))
+        internal _lastJoinedBlockByRoundByAccount;
+
     constructor(
         address factory_,
         address tokenAddress_,
@@ -63,6 +67,10 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
                 revert InsufficientGovVotes();
             }
         }
+
+        uint256 currentRound = _join.currentRound();
+        _lastJoinedBlockByRoundByAccount[currentRound][msg.sender] = block
+            .number;
 
         super.join(amount, verificationInfos);
     }
@@ -100,15 +108,15 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         uint256 lpRatio = (joinedAmount * PRECISION) / totalJoined;
         uint256 theoreticalReward = (totalActionReward * lpRatio) / PRECISION;
 
-        // calculate block ratio only if this is the join round
+        // calculate block ratio only if joined in this round
         uint256 blockRatio = PRECISION;
-        if (_joinedRoundByAccount[account] == round) {
+        uint256 joinedBlock = _lastJoinedBlockByRoundByAccount[round][account];
+        if (joinedBlock != 0) {
             uint256 phaseBlocks = _join.phaseBlocks();
             uint256 roundEndBlock = _join.originBlocks() +
                 (round + 1) *
                 phaseBlocks -
                 1;
-            uint256 joinedBlock = _lastJoinedBlockByAccount[account];
             uint256 blocksInRound = roundEndBlock - joinedBlock + 1;
             blockRatio = (blocksInRound * PRECISION) / phaseBlocks;
         }
