@@ -69,8 +69,10 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         }
 
         uint256 currentRound = _join.currentRound();
-        _lastJoinedBlockByRoundByAccount[currentRound][msg.sender] = block
-            .number;
+        if (isFirstJoin || currentRound == _joinedRoundByAccount[msg.sender]) {
+            _lastJoinedBlockByRoundByAccount[currentRound][msg.sender] = block
+                .number;
+        }
 
         super.join(amount, verificationInfos);
     }
