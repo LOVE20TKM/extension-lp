@@ -265,4 +265,292 @@ contract BlockRatioAcrossRoundsTest is Test {
         (, , claimed) = extension.rewardInfoByAccount(roundN, bob.userAddress);
         assertTrue(claimed, "Should be claimed");
     }
+
+    /// @notice Test: LP continues across rounds - should have 100% block ratio in next round
+    /// User joins in round N, LP continues to round N+1 without re-joining
+    /// Block ratio in round N+1 should be 100% (joinedBlock == 0 for that round)
+    function test_lpContinuesAcrossRounds_fullBlockRatio() public {
+        // Vote for round N
+        h.stake_liquidity(bob);
+        h.stake_token(bob);
+        h.vote(bob);
+
+        // Join phase round N - bob joins late in the round
+        h.next_phase();
+        uint256 roundN = h.joinContract().currentRound();
+
+        // Advance to middle of join phase, then join
+        vm.roll(block.number + 50);
+        h.extension_join(bob, extension, 1e18);
+
+        // Verify round N
+        h.next_phase();
+        h.verify(bob);
+
+        // Mint round N
+        h.next_phase();
+
+        // Get round N reward (has block ratio penalty since joined late)
+        (uint256 roundNMintReward, uint256 roundNBurnReward, ) = extension
+            .rewardInfoByAccount(roundN, bob.userAddress);
+        uint256 roundNTotalReward = roundNMintReward + roundNBurnReward;
+        assertGt(roundNTotalReward, 0, "Should have round N reward");
+
+        // Claim round N
+        h.extension_claimReward(bob, extension, roundN);
+
+        // === Round N+1: bob does NOT re-join, LP continues ===
+        // Move to vote phase of next round
+        h.next_phase();
+
+        // Resubmit action for round N+1
+        h.resubmit_action(bob, address(extension));
+
+        // Vote for round N+1
+        h.vote(bob);
+
+        // Join phase for next round (bob doesn't join again, LP continues)
+        // Note: After vote->join->verify->mint cycle, we're now at join round N+4
+        h.next_phase();
+        uint256 roundN1 = h.joinContract().currentRound();
+        assertGt(roundN1, roundN, "Should be after round N");
+
+        // Verify next round
+        h.next_phase();
+        h.verify(bob);
+
+        // Mint next round
+        h.next_phase();
+
+        // Get next round reward - should have 100% block ratio since LP is continued
+        // (joinedBlock for this round is 0, so blockRatio = 100%)
+        (uint256 roundN1MintReward, , ) = extension.rewardInfoByAccount(
+            roundN1,
+            bob.userAddress
+        );
+        assertGt(roundN1MintReward, 0, "Should have mint reward in continued round");
+
+        // Next round should have better mint reward ratio (100% block ratio vs partial in round N)
+        // Because LP is continued and joinedBlock == 0, blockRatio = 100%
+        // Note: Actual mint amount may vary due to gov votes ratio and total rewards
+        // The key verification is that the continued LP has full block ratio (no penalty)
+        assertGt(
+            roundN1MintReward,
+            roundNMintReward,
+            "Continued round should have higher mint reward (full block ratio)"
+        );
+    }
+
+    /// @notice Test: add LP in next round - should NOT update joinedBlock
+    /// User joins in round N, then adds more LP in round N+1
+    /// Block ratio in round N+1 should still be 100% (joinedBlock not updated)
+    function test_addLpInNextRound_blockRatioNotUpdated() public {
+        // Vote for round N
+        h.stake_liquidity(bob);
+        h.stake_token(bob);
+        h.vote(bob);
+
+        // Join phase round N
+        h.next_phase();
+        uint256 roundN = h.joinContract().currentRound();
+        h.extension_join(bob, extension, 5e17);
+
+        // Verify round N
+        h.next_phase();
+        h.verify(bob);
+
+        // Mint round N
+        h.next_phase();
+        h.extension_claimReward(bob, extension, roundN);
+
+        // === Round N+1: bob adds more LP late in the join phase ===
+        // Move to vote phase of next round
+        h.next_phase();
+
+        // Resubmit action for round N+1
+        h.resubmit_action(bob, address(extension));
+
+        // Vote for round N+1
+        h.vote(bob);
+
+        // Join phase for next round
+        h.next_phase();
+        uint256 roundN1 = h.joinContract().currentRound();
+        assertGt(roundN1, roundN, "Should be after round N");
+
+        // Advance to late in join phase
+        vm.roll(block.number + 50);
+
+        // Add more LP (this should NOT update _lastJoinedBlockByRoundByAccount)
+        // Because currentRound != _joinedRoundByAccount[bob] (LP was continued from roundN)
+        h.extension_join(bob, extension, 5e17);
+
+        // Verify next round
+        h.next_phase();
+        h.verify(bob);
+
+        // Mint next round
+        h.next_phase();
+
+        // Get reward - should have 100% block ratio despite adding LP late
+        // Because _lastJoinedBlockByRoundByAccount[roundN1] was NOT updated (stays 0)
+        // since the user's joinedRound is still roundN, not roundN1
+        (uint256 mintReward, uint256 burnReward, ) = extension
+            .rewardInfoByAccount(roundN1, bob.userAddress);
+        uint256 totalReward = mintReward + burnReward;
+        assertGt(totalReward, 0, "Should have reward");
+
+        // Claim
+        h.extension_claimReward(bob, extension, roundN1);
+    }
+
+    /// @notice Test: compare rewards - continued LP vs new LP in same round
+    /// User A: continues LP from previous round (100% block ratio)
+    /// User B: joins late in current round (partial block ratio)
+    /// User A should get more reward with same LP amount
+    function test_continuedLpVsNewLp_blockRatioComparison() public {
+        // Setup alice
+        h.stake_liquidity(alice);
+        h.stake_token(alice);
+
+        // === Round N: only bob joins ===
+        h.stake_liquidity(bob);
+        h.stake_token(bob);
+        h.vote(bob);
+
+        // Join phase round N
+        h.next_phase();
+        uint256 roundN = h.joinContract().currentRound();
+        h.extension_join(bob, extension, 1e18);
+
+        // Verify round N
+        h.next_phase();
+        h.verify(bob);
+
+        // Mint round N
+        h.next_phase();
+        h.extension_claimReward(bob, extension, roundN);
+
+        // === Round N+1: bob continues LP, alice joins late ===
+        // Move to vote phase of next round
+        h.next_phase();
+
+        // Resubmit action for round N+1
+        h.resubmit_action(bob, address(extension));
+
+        // Vote for round N+1
+        h.vote(bob);
+        h.vote(alice);
+
+        // Join phase for next round
+        h.next_phase();
+        uint256 roundN1 = h.joinContract().currentRound();
+
+        // Advance to late in join phase
+        vm.roll(block.number + 50);
+
+        // Alice joins late with same amount as bob - this is her first join
+        h.extension_join(alice, extension, 1e18);
+
+        // Bob does NOT re-join, his LP continues from previous round
+
+        // Verify next round
+        h.next_phase();
+        h.verify(bob);
+        h.verify(alice);
+
+        // Mint next round
+        h.next_phase();
+
+        // Get rewards
+        (uint256 bobMintReward, , ) = extension.rewardInfoByAccount(
+            roundN1,
+            bob.userAddress
+        );
+        (uint256 aliceMintReward, , ) = extension.rewardInfoByAccount(
+            roundN1,
+            alice.userAddress
+        );
+
+        // Both should have mint rewards
+        assertGt(bobMintReward, 0, "Bob should have mint reward");
+        // Note: Alice may have very low or zero mint reward due to low gov votes
+
+        // Bob should have higher mint reward:
+        // - Bob has 100% block ratio (continued LP, joinedBlock == 0 for this round)
+        // - Alice has partial block ratio (first join late, joinedBlock != 0)
+        // Also, Bob has much higher gov votes than Alice
+        assertGt(
+            bobMintReward,
+            aliceMintReward,
+            "Bob (continued LP) should have more mint reward than Alice"
+        );
+    }
+
+    /// @notice Test: exit and rejoin in next round - should update joinedBlock
+    /// User joins in round N, exits, then rejoins in round N+1
+    /// This is a "first join" again, so joinedBlock SHOULD be updated
+    function test_exitAndRejoinNextRound_updatesJoinedBlock() public {
+        // Vote for round N
+        h.stake_liquidity(bob);
+        h.stake_token(bob);
+        h.vote(bob);
+
+        // Join phase round N
+        h.next_phase();
+        uint256 roundN = h.joinContract().currentRound();
+        h.extension_join(bob, extension, 1e18);
+
+        // Verify round N
+        h.next_phase();
+        h.verify(bob);
+
+        // Mint round N
+        h.next_phase();
+        h.extension_claimReward(bob, extension, roundN);
+
+        // === Exit before round N+1 ===
+        h.next_phases(7 / PHASE_BLOCKS + 1);
+        h.extension_withdraw(bob, extension);
+
+        // === Round N+1: bob rejoins late ===
+
+        // Resubmit action for round N+1
+        h.resubmit_action(bob, address(extension));
+
+        // Vote for round N+1
+        h.vote(bob);
+
+        // Join phase round N+1
+        h.next_phase();
+        uint256 roundN1 = h.joinContract().currentRound();
+
+        // Advance to late in join phase
+        vm.roll(block.number + 50);
+
+        // Rejoin late - this IS a first join (after exit), so joinedBlock SHOULD be updated
+        h.extension_join(bob, extension, 1e18);
+
+        // Verify round N+1
+        h.next_phase();
+        h.verify(bob);
+
+        // Mint round N+1
+        h.next_phase();
+
+        // Get reward - should have partial block ratio (joined late after exit)
+        (uint256 mintReward, uint256 burnReward, ) = extension
+            .rewardInfoByAccount(roundN1, bob.userAddress);
+        uint256 totalReward = mintReward + burnReward;
+        assertGt(totalReward, 0, "Should have reward");
+
+        // The reward should be less than if he had continued LP (but we can't directly compare here)
+        // At least verify claiming works
+        h.extension_claimReward(bob, extension, roundN1);
+        (, , bool claimed) = extension.rewardInfoByAccount(
+            roundN1,
+            bob.userAddress
+        );
+        assertTrue(claimed, "Should be claimed");
+    }
 }

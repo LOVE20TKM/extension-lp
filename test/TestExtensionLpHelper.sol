@@ -563,6 +563,20 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
         return actionId;
     }
 
+    /// @notice Resubmit an existing action in the current round
+    function resubmit_action(
+        FlowUserParams memory p,
+        address extensionAddress
+    ) public {
+        // Get extension creator
+        address extensionCreator = IExtensionFactory(extensionFactory)
+            .extensionCreator(extensionAddress);
+
+        vm.startPrank(extensionCreator);
+        submitContract.submit(p.tokenAddress, p.actionId);
+        vm.stopPrank();
+    }
+
     // Copy from TestFlowHelper
     function createUser(
         string memory userName,
