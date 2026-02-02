@@ -224,7 +224,11 @@ contract BlockRatioAcrossRoundsTest is Test {
         uint256 aliceBalanceAfter = IERC20(tokenAddress).balanceOf(
             alice.userAddress
         );
-        assertGt(aliceBalanceAfter, aliceBalanceBefore, "Alice should get reward");
+        assertGt(
+            aliceBalanceAfter,
+            aliceBalanceBefore,
+            "Alice should get reward"
+        );
     }
 
     /// @notice Test: join, exit, rejoin in same round - only last join block matters
@@ -328,7 +332,11 @@ contract BlockRatioAcrossRoundsTest is Test {
             roundN1,
             bob.userAddress
         );
-        assertGt(roundN1MintReward, 0, "Should have mint reward in continued round");
+        assertGt(
+            roundN1MintReward,
+            0,
+            "Should have mint reward in continued round"
+        );
 
         // Next round should have better mint reward ratio (100% block ratio vs partial in round N)
         // Because LP is continued and joinedBlock == 0, blockRatio = 100%
@@ -381,7 +389,7 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Advance to late in join phase
         vm.roll(block.number + 50);
 
-        // Add more LP (this should NOT update _lastJoinedBlockByRoundByAccount)
+        // Add more LP (this should NOT update _lastJoinedBlockByAccountByJoinedRound)
         // Because currentRound != _joinedRoundByAccount[bob] (LP was continued from roundN)
         h.extension_join(bob, extension, 5e17);
 
@@ -393,7 +401,7 @@ contract BlockRatioAcrossRoundsTest is Test {
         h.next_phase();
 
         // Get reward - should have 100% block ratio despite adding LP late
-        // Because _lastJoinedBlockByRoundByAccount[roundN1] was NOT updated (stays 0)
+        // Because _lastJoinedBlockByAccountByJoinedRound[bob][roundN1] was NOT updated (stays 0)
         // since the user's joinedRound is still roundN, not roundN1
         (uint256 mintReward, uint256 burnReward, ) = extension
             .rewardInfoByAccount(roundN1, bob.userAddress);

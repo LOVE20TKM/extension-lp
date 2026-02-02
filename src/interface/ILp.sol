@@ -20,6 +20,11 @@ interface ILp is ILpEvents, ILpErrors {
 
     function MIN_GOV_VOTES() external view returns (uint256);
 
+    function lastJoinedBlockByAccountByJoinedRound(
+        address account,
+        uint256 joinedRound
+    ) external view returns (uint256 lastJoinedBlock);
+
     function rewardInfoByAccount(
         uint256 round,
         address account

@@ -29,9 +29,9 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     mapping(uint256 => mapping(address => uint256))
         internal _burnedRewardByAccount;
 
-    /// @dev round => account => last joined block in that round (0 means not joined in that round)
-    mapping(uint256 => mapping(address => uint256))
-        internal _lastJoinedBlockByRoundByAccount;
+    /// @dev account => joinedRound => last joined block in that round (0 means not joined in that round)
+    mapping(address => mapping(uint256 => uint256))
+        internal _lastJoinedBlockByAccountByJoinedRound;
 
     constructor(
         address factory_,
@@ -70,8 +70,9 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
 
         uint256 currentRound = _join.currentRound();
         if (isFirstJoin || currentRound == _joinedRoundByAccount[msg.sender]) {
-            _lastJoinedBlockByRoundByAccount[currentRound][msg.sender] = block
-                .number;
+            _lastJoinedBlockByAccountByJoinedRound[msg.sender][
+                currentRound
+            ] = block.number;
         }
 
         super.join(amount, verificationInfos);
@@ -112,7 +113,9 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
 
         // calculate block ratio only if joined in this round
         uint256 blockRatio = PRECISION;
-        uint256 joinedBlock = _lastJoinedBlockByRoundByAccount[round][account];
+        uint256 joinedBlock = _lastJoinedBlockByAccountByJoinedRound[account][
+            round
+        ];
         if (joinedBlock != 0) {
             uint256 phaseBlocks = _join.phaseBlocks();
             uint256 roundEndBlock = _join.originBlocks() +
@@ -238,5 +241,12 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
 
         // If someone participated, burning is handled by each participant during claim
         return 0;
+    }
+
+    function lastJoinedBlockByAccountByJoinedRound(
+        address account,
+        uint256 joinedRound
+    ) external view returns (uint256 lastJoinedBlock) {
+        return _lastJoinedBlockByAccountByJoinedRound[account][joinedRound];
     }
 }
