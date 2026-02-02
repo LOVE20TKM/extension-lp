@@ -87,12 +87,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         }
 
         // prepare
-        (uint256 totalActionReward, ) = _mint.actionRewardByActionIdByAccount(
-            TOKEN_ADDRESS,
-            round,
-            actionId,
-            address(this)
-        );
+        uint256 totalActionReward = reward(round);
 
         if (totalActionReward == 0) {
             return (0, 0);
