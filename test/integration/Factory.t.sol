@@ -32,7 +32,7 @@ contract FactoryTest is Test {
     }
 
     function test_factory_createExtension() public {
-        ExtensionLp extension = h.createExtension(tokenAddress, 2, 1e18);
+        ExtensionLp extension = h.createExtension(tokenAddress, 2, 1e17);
 
         ExtensionLpFactory factory = h.extensionFactory();
         assertTrue(
@@ -43,9 +43,9 @@ contract FactoryTest is Test {
     }
 
     function test_factory_createMultipleExtensions() public {
-        ExtensionLp extension1 = h.createExtension(tokenAddress, 2, 1e18);
+        ExtensionLp extension1 = h.createExtension(tokenAddress, 2, 1e17);
 
-        ExtensionLp extension2 = h.createExtension(tokenAddress, 3, 2e18);
+        ExtensionLp extension2 = h.createExtension(tokenAddress, 3, 2e17);
 
         ExtensionLpFactory factory = h.extensionFactory();
         assertTrue(
@@ -61,12 +61,12 @@ contract FactoryTest is Test {
 
     function test_factory_extensionParams() public {
         uint256 govRatioMultiplier = 2;
-        uint256 minGovVotes = 1e18;
+        uint256 minGovRatio = 1e17; // 10%
 
         ExtensionLp extension = h.createExtension(
             tokenAddress,
             govRatioMultiplier,
-            minGovVotes
+            minGovRatio
         );
 
         assertEq(
@@ -74,20 +74,16 @@ contract FactoryTest is Test {
             tokenAddress,
             "tokenAddress should match"
         );
-        assertEq(
-            extension.WAITING_BLOCKS(),
-            1,
-            "WAITING_BLOCKS should match"
-        );
+        assertEq(extension.WAITING_BLOCKS(), 1, "WAITING_BLOCKS should match");
         assertEq(
             extension.GOV_RATIO_MULTIPLIER(),
             govRatioMultiplier,
             "GOV_RATIO_MULTIPLIER should match"
         );
         assertEq(
-            extension.MIN_GOV_VOTES(),
-            minGovVotes,
-            "MIN_GOV_VOTES should match"
+            extension.MIN_GOV_RATIO(),
+            minGovRatio,
+            "MIN_GOV_RATIO should match"
         );
         assertEq(
             extension.JOIN_TOKEN_ADDRESS(),
@@ -97,8 +93,8 @@ contract FactoryTest is Test {
     }
 
     function test_factory_extensions() public {
-        ExtensionLp extension1 = h.createExtension(tokenAddress, 2, 1e18);
-        ExtensionLp extension2 = h.createExtension(tokenAddress, 3, 2e18);
+        ExtensionLp extension1 = h.createExtension(tokenAddress, 2, 1e17);
+        ExtensionLp extension2 = h.createExtension(tokenAddress, 3, 2e17);
 
         ExtensionLpFactory factory = h.extensionFactory();
         address[] memory extensions = factory.extensions();
@@ -116,8 +112,8 @@ contract FactoryTest is Test {
     }
 
     function test_factory_extensionsAtIndex() public {
-        ExtensionLp extension1 = h.createExtension(tokenAddress, 2, 1e18);
-        ExtensionLp extension2 = h.createExtension(tokenAddress, 3, 2e18);
+        ExtensionLp extension1 = h.createExtension(tokenAddress, 2, 1e17);
+        ExtensionLp extension2 = h.createExtension(tokenAddress, 3, 2e17);
 
         ExtensionLpFactory factory = h.extensionFactory();
         assertEq(

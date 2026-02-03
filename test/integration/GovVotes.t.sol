@@ -98,7 +98,11 @@ contract GovVotesTest is Test {
         );
         uint256 totalV = h.stakeContract().govVotesNum(tokenAddress);
         uint256 bobRatio = totalV == 0 ? 0 : (govVotes * 1e18) / totalV;
-        assertGe(bobRatio, 1e17, "Bob ratio should be at least MIN_GOV_RATIO (10%)");
+        assertGe(
+            bobRatio,
+            1e17,
+            "Bob ratio should be at least MIN_GOV_RATIO (10%)"
+        );
 
         h.next_phase();
         // extension_join will automatically add liquidity to Uniswap pair if needed
@@ -126,7 +130,11 @@ contract GovVotesTest is Test {
         );
         uint256 totalV = h.stakeContract().govVotesNum(tokenAddress);
         uint256 bobRatio = totalV == 0 ? 0 : (govVotes * 1e18) / totalV;
-        assertGt(bobRatio, 1e17, "Bob ratio should be more than MIN_GOV_RATIO (10%)");
+        assertGt(
+            bobRatio,
+            1e17,
+            "Bob ratio should be more than MIN_GOV_RATIO (10%)"
+        );
 
         h.next_phase();
         // extension_join will automatically add liquidity to Uniswap pair if needed
@@ -156,11 +164,11 @@ contract GovVotesTest is Test {
         assertEq(totalAmount, lpAmount1 + lpAmount2);
     }
 
-    function test_immutableVariables_minGovVotes() public view {
+    function test_immutableVariables_minGovRatio() public view {
         assertEq(
-            extension.MIN_GOV_VOTES(),
-            1e18,
-            "MIN_GOV_VOTES should be 1e18"
+            extension.MIN_GOV_RATIO(),
+            1e17,
+            "MIN_GOV_RATIO should be 1e17 (10%)"
         );
     }
 

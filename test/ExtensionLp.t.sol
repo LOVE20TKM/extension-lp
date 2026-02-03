@@ -178,7 +178,7 @@ contract ExtensionLpTest is Test {
             address(token),
             address(invalidStakeToken),
             GOV_RATIO_MULTIPLIER,
-                MIN_GOV_RATIO
+            MIN_GOV_RATIO
         );
     }
 
@@ -350,7 +350,7 @@ contract ExtensionLpTest is Test {
             address(token),
             address(joinToken),
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES
+            MIN_GOV_RATIO
         );
 
         assertTrue(factory.exists(newExtension));
@@ -373,7 +373,7 @@ contract ExtensionLpTest is Test {
             address(token),
             address(joinToken2),
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES
+            MIN_GOV_RATIO
         );
 
         address[] memory exts = factory.extensions();
@@ -398,7 +398,7 @@ contract ExtensionLpTest is Test {
             address(token),
             address(joinToken2),
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES
+            MIN_GOV_RATIO
         );
 
         assertEq(factory.extensionsAtIndex(0), address(extension));

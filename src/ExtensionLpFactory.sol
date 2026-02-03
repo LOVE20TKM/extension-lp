@@ -45,11 +45,18 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
         IExtensionCenter center = IExtensionCenter(CENTER_ADDRESS);
         address uniswapV2FactoryAddress = center.uniswapV2FactoryAddress();
 
-        if (!TokenLib.isLpTokenFromFactory(joinLpTokenAddress, uniswapV2FactoryAddress)) {
+        if (
+            !TokenLib.isLpTokenFromFactory(
+                joinLpTokenAddress,
+                uniswapV2FactoryAddress
+            )
+        ) {
             revert ILpFactoryErrors.InvalidJoinTokenFactory();
         }
 
-        if (!TokenLib.isLpTokenContainsToken(joinLpTokenAddress, tokenAddress)) {
+        if (
+            !TokenLib.isLpTokenContainsToken(joinLpTokenAddress, tokenAddress)
+        ) {
             revert ILpFactoryErrors.InvalidJoinTokenPair();
         }
     }

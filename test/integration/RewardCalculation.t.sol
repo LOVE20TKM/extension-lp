@@ -30,11 +30,11 @@ contract RewardCalculationTest is Test {
         tokenAddress = h.firstTokenAddress();
 
         // Create extension with specific gov ratio multiplier
-        // Use a very low MIN_GOV_VOTES to make testing easier (users already have some gov votes from initial stake)
+        // MIN_GOV_RATIO = 0 so reward-calculation tests do not depend on ratio setup
         extension = h.createExtension(
             tokenAddress,
             2, // GOV_RATIO_MULTIPLIER = 2
-            1e12 // MIN_GOV_VOTES = 1e12 (very low for testing)
+            0 // MIN_GOV_RATIO = 0
         );
 
         // Setup action with extension address as whiteListAddress
@@ -180,38 +180,7 @@ contract RewardCalculationTest is Test {
 
         h.next_phase();
         // extension_join will automatically add liquidity to Uniswap pair if needed
-        // Ensure users have enough gov votes for join (MIN_GOV_VOTES = 1e18)
-        // Stake more if needed to meet MIN_GOV_VOTES requirement
-        uint256 minGovVotes = extension.MIN_GOV_VOTES();
-        // Ensure users have enough tokens to stake more to meet MIN_GOV_VOTES
-        // Use a more conservative approach: stake larger amounts with limited iterations
-        // This avoids unbalancing the Uniswap pair reserves while ensuring enough gov votes
-        uint256 maxIterations = 5;
-        for (
-            uint256 i = 0;
-            i < maxIterations &&
-                h.stakeContract().validGovVotes(
-                    tokenAddress,
-                    alice.userAddress
-                ) <
-                minGovVotes;
-            i++
-        ) {
-            h.forceMint(tokenAddress, alice.userAddress, 2e24); // Use larger amount
-            h.stake_liquidity(alice);
-            h.stake_token(alice);
-        }
-        for (
-            uint256 i = 0;
-            i < maxIterations &&
-                h.stakeContract().validGovVotes(tokenAddress, bob.userAddress) <
-                minGovVotes;
-            i++
-        ) {
-            h.forceMint(tokenAddress, bob.userAddress, 2e24); // Use larger amount
-            h.stake_liquidity(bob);
-            h.stake_token(bob);
-        }
+        // (MIN_GOV_RATIO = 0 in this extension, so no ratio check)
 
         uint256 bobLp = 5e17;
         uint256 aliceLp = 5e17;

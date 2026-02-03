@@ -47,7 +47,7 @@ contract MultipleUsersTest is Test {
         h.launch_claim(bob);
         h.launch_claim(alice);
 
-        extension = h.createExtensionWithDefaults(tokenAddress);
+        extension = h.createExtension(tokenAddress, 2, 0); // MIN_GOV_RATIO = 0 for multi-user tests
     }
 
     function test_multipleUsers_join() public {
