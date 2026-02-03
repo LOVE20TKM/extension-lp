@@ -59,7 +59,7 @@ contract RewardCalculationTest is Test {
         uint256 currentRound = h.verifyContract().currentRound();
 
         (uint256 mintReward, uint256 burnReward, bool claimed) = extension
-            .rewardInfoByAccount(currentRound, bob.userAddress);
+            .rewardByAccount(currentRound, bob.userAddress);
 
         assertEq(mintReward, 0, "mintReward should be 0 before round finished");
         assertEq(burnReward, 0, "burnReward should be 0 before round finished");
@@ -89,7 +89,7 @@ contract RewardCalculationTest is Test {
         // This is the round that was just verified, and reward is already prepared for it
         uint256 round = h.verifyContract().currentRound() - 1;
         (uint256 mintReward, uint256 burnReward, bool claimed) = extension
-            .rewardInfoByAccount(round, bob.userAddress);
+            .rewardByAccount(round, bob.userAddress);
 
         // rewardInfoByAccount returns expected reward even if not claimed yet
         assertGt(mintReward, 0, "mintReward should be > 0");
@@ -121,7 +121,7 @@ contract RewardCalculationTest is Test {
         h.extension_claimReward(bob, extension, round);
 
         (uint256 mintReward, uint256 burnReward, bool claimed) = extension
-            .rewardInfoByAccount(round, bob.userAddress);
+            .rewardByAccount(round, bob.userAddress);
 
         assertGt(mintReward, 0, "mintReward should be > 0");
         assertGe(burnReward, 0, "burnReward should be >= 0");
@@ -155,7 +155,7 @@ contract RewardCalculationTest is Test {
         // Use verifyRound (currentRound - 1) instead of joinRound, like test_all_standard_steps
         // This is the round that was just verified, and reward is already prepared for it
         uint256 round = h.verifyContract().currentRound() - 1;
-        (uint256 mintReward, , bool claimed) = extension.rewardInfoByAccount(
+        (uint256 mintReward, , bool claimed) = extension.rewardByAccount(
             round,
             bob.userAddress
         );
@@ -234,13 +234,13 @@ contract RewardCalculationTest is Test {
             uint256 bobMintReward,
             uint256 bobBurnReward,
             bool bobIsMinted
-        ) = extension.rewardInfoByAccount(round, bob.userAddress);
+        ) = extension.rewardByAccount(round, bob.userAddress);
 
         (
             uint256 aliceMintReward,
             uint256 aliceBurnReward,
             bool aliceIsMinted
-        ) = extension.rewardInfoByAccount(round, alice.userAddress);
+        ) = extension.rewardByAccount(round, alice.userAddress);
 
         assertGt(bobMintReward, 0, "Bob should have mint reward");
         assertGt(aliceMintReward, 0, "Alice should have mint reward");

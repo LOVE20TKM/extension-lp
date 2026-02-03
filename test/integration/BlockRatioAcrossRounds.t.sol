@@ -65,13 +65,13 @@ contract BlockRatioAcrossRoundsTest is Test {
 
         // Check that reward calculation doesn't revert
         (uint256 mintReward, uint256 burnReward, bool claimed) = extension
-            .rewardInfoByAccount(roundN, bob.userAddress);
+            .rewardByAccount(roundN, bob.userAddress);
         assertFalse(claimed, "Should not be claimed yet");
         assertGt(mintReward + burnReward, 0, "Should have some reward");
 
         // Claim
         h.extension_claimReward(bob, extension, roundN);
-        (mintReward, burnReward, claimed) = extension.rewardInfoByAccount(
+        (mintReward, burnReward, claimed) = extension.rewardByAccount(
             roundN,
             bob.userAddress
         );
@@ -113,7 +113,7 @@ contract BlockRatioAcrossRoundsTest is Test {
         );
 
         // Verify claimed
-        (uint256 mintReward, , bool claimed) = extension.rewardInfoByAccount(
+        (uint256 mintReward, , bool claimed) = extension.rewardByAccount(
             roundN,
             bob.userAddress
         );
@@ -160,9 +160,9 @@ contract BlockRatioAcrossRoundsTest is Test {
 
         // Check rewards - bob joined earlier so has more blocks, should get more reward
         (uint256 bobMintReward, uint256 bobBurnReward, ) = extension
-            .rewardInfoByAccount(roundN, bob.userAddress);
+            .rewardByAccount(roundN, bob.userAddress);
         (uint256 aliceMintReward, uint256 aliceBurnReward, ) = extension
-            .rewardInfoByAccount(roundN, alice.userAddress);
+            .rewardByAccount(roundN, alice.userAddress);
 
         uint256 bobTotalReward = bobMintReward + bobBurnReward;
         uint256 aliceTotalReward = aliceMintReward + aliceBurnReward;
@@ -261,12 +261,12 @@ contract BlockRatioAcrossRoundsTest is Test {
 
         // Should be able to claim
         (uint256 mintReward, uint256 burnReward, bool claimed) = extension
-            .rewardInfoByAccount(roundN, bob.userAddress);
+            .rewardByAccount(roundN, bob.userAddress);
         assertFalse(claimed, "Should not be claimed yet");
         assertGt(mintReward + burnReward, 0, "Should have reward");
 
         h.extension_claimReward(bob, extension, roundN);
-        (, , claimed) = extension.rewardInfoByAccount(roundN, bob.userAddress);
+        (, , claimed) = extension.rewardByAccount(roundN, bob.userAddress);
         assertTrue(claimed, "Should be claimed");
     }
 
@@ -296,7 +296,7 @@ contract BlockRatioAcrossRoundsTest is Test {
 
         // Get round N reward (has block ratio penalty since joined late)
         (uint256 roundNMintReward, uint256 roundNBurnReward, ) = extension
-            .rewardInfoByAccount(roundN, bob.userAddress);
+            .rewardByAccount(roundN, bob.userAddress);
         uint256 roundNTotalReward = roundNMintReward + roundNBurnReward;
         assertGt(roundNTotalReward, 0, "Should have round N reward");
 
@@ -328,7 +328,7 @@ contract BlockRatioAcrossRoundsTest is Test {
 
         // Get next round reward - should have 100% block ratio since LP is continued
         // (joinedBlock for this round is 0, so blockRatio = 100%)
-        (uint256 roundN1MintReward, , ) = extension.rewardInfoByAccount(
+        (uint256 roundN1MintReward, , ) = extension.rewardByAccount(
             roundN1,
             bob.userAddress
         );
@@ -403,8 +403,10 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Get reward - should have 100% block ratio despite adding LP late
         // Because _lastJoinedBlockByAccountByJoinedRound[bob][roundN1] was NOT updated (stays 0)
         // since the user's joinedRound is still roundN, not roundN1
-        (uint256 mintReward, uint256 burnReward, ) = extension
-            .rewardInfoByAccount(roundN1, bob.userAddress);
+        (uint256 mintReward, uint256 burnReward, ) = extension.rewardByAccount(
+            roundN1,
+            bob.userAddress
+        );
         uint256 totalReward = mintReward + burnReward;
         assertGt(totalReward, 0, "Should have reward");
 
@@ -471,11 +473,11 @@ contract BlockRatioAcrossRoundsTest is Test {
         h.next_phase();
 
         // Get rewards
-        (uint256 bobMintReward, , ) = extension.rewardInfoByAccount(
+        (uint256 bobMintReward, , ) = extension.rewardByAccount(
             roundN1,
             bob.userAddress
         );
-        (uint256 aliceMintReward, , ) = extension.rewardInfoByAccount(
+        (uint256 aliceMintReward, , ) = extension.rewardByAccount(
             roundN1,
             alice.userAddress
         );
@@ -547,15 +549,17 @@ contract BlockRatioAcrossRoundsTest is Test {
         h.next_phase();
 
         // Get reward - should have partial block ratio (joined late after exit)
-        (uint256 mintReward, uint256 burnReward, ) = extension
-            .rewardInfoByAccount(roundN1, bob.userAddress);
+        (uint256 mintReward, uint256 burnReward, ) = extension.rewardByAccount(
+            roundN1,
+            bob.userAddress
+        );
         uint256 totalReward = mintReward + burnReward;
         assertGt(totalReward, 0, "Should have reward");
 
         // The reward should be less than if he had continued LP (but we can't directly compare here)
         // At least verify claiming works
         h.extension_claimReward(bob, extension, roundN1);
-        (, , bool claimed) = extension.rewardInfoByAccount(
+        (, , bool claimed) = extension.rewardByAccount(
             roundN1,
             bob.userAddress
         );

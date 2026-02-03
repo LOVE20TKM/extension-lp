@@ -164,7 +164,7 @@ contract MultipleUsersTest is Test {
 
         for (uint256 i = 0; i < numUsers; i++) {
             (uint256 mintReward, uint256 burnReward, bool claimed) = extension
-                .rewardInfoByAccount(round, users[i].userAddress);
+                .rewardByAccount(round, users[i].userAddress);
 
             assertGt(mintReward, 0, "User should have mint reward");
             assertGe(burnReward, 0, "User should have burn reward >= 0");

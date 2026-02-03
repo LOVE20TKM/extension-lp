@@ -25,10 +25,6 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
 
     ILOVE20Stake internal immutable _stake;
 
-    /// @dev round => account => burnReward (recorded at claim time)
-    mapping(uint256 => mapping(address => uint256))
-        internal _burnedRewardByAccount;
-
     /// @dev account => joinedRound => last joined block in that round (0 means not joined in that round)
     mapping(address => mapping(uint256 => uint256))
         internal _lastJoinedBlockByAccountByJoinedRound;
@@ -78,10 +74,16 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         super.join(amount, verificationInfos);
     }
 
-    function _calculateRewardBreakdown(
+    function _calculateReward(
         uint256 round,
         address account
-    ) internal view returns (uint256 mintReward, uint256 burnReward) {
+    )
+        internal
+        view
+        virtual
+        override
+        returns (uint256 mintReward, uint256 burnReward)
+    {
         if (round >= _verify.currentRound()) {
             return (0, 0);
         }
@@ -150,75 +152,6 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         burnReward = theoreticalReward - mintReward;
 
         return (mintReward, burnReward);
-    }
-
-    function _calculateReward(
-        uint256 round,
-        address account
-    ) internal view virtual override returns (uint256) {
-        (uint256 mintReward, ) = _calculateRewardBreakdown(round, account);
-        return mintReward;
-    }
-
-    function _claimReward(
-        uint256 round
-    ) internal virtual override returns (uint256 amount) {
-        if (_claimedByAccount[round][msg.sender]) {
-            revert AlreadyClaimed();
-        }
-
-        (uint256 mintReward, uint256 burnReward) = _calculateRewardBreakdown(
-            round,
-            msg.sender
-        );
-        amount = mintReward;
-
-        _claimedByAccount[round][msg.sender] = true;
-        _claimedRewardByAccount[round][msg.sender] = amount;
-        _burnedRewardByAccount[round][msg.sender] = burnReward;
-
-        if (amount > 0) {
-            IERC20(TOKEN_ADDRESS).safeTransfer(msg.sender, amount);
-        }
-
-        if (burnReward > 0) {
-            ILOVE20Token(TOKEN_ADDRESS).burn(burnReward);
-            emit BurnReward({
-                tokenAddress: TOKEN_ADDRESS,
-                round: round,
-                actionId: actionId,
-                account: msg.sender,
-                amount: burnReward
-            });
-        }
-
-        emit ClaimReward({
-            tokenAddress: TOKEN_ADDRESS,
-            round: round,
-            actionId: actionId,
-            account: msg.sender,
-            amount: amount
-        });
-    }
-
-    function rewardInfoByAccount(
-        uint256 round,
-        address account
-    )
-        external
-        view
-        returns (uint256 mintReward, uint256 burnReward, bool isClaimed)
-    {
-        if (_claimedByAccount[round][account]) {
-            return (
-                _claimedRewardByAccount[round][account],
-                _burnedRewardByAccount[round][account],
-                true
-            );
-        }
-
-        (mintReward, burnReward) = _calculateRewardBreakdown(round, account);
-        return (mintReward, burnReward, false);
     }
 
     function _calculateBurnAmount(

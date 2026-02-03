@@ -224,7 +224,7 @@ contract ExtensionLpTest is Test {
 
         // Before round is finished, mintReward should be 0
         (uint256 mintReward, uint256 burnReward, bool claimed) = extension
-            .rewardInfoByAccount(currentRound, user1);
+            .rewardByAccount(currentRound, user1);
 
         assertEq(mintReward, 0);
         assertEq(burnReward, 0);
@@ -244,7 +244,7 @@ contract ExtensionLpTest is Test {
         mint.setActionReward(address(token), round, ACTION_ID, totalReward);
 
         (uint256 mintReward, uint256 burnReward, bool claimed) = extension
-            .rewardInfoByAccount(round, user1);
+            .rewardByAccount(round, user1);
 
         // User1 has 100% of LP (totalJoined = 100e18)
         // tokenRatio = 100e18 * 1e18 / 100e18 = 1e18
@@ -276,9 +276,9 @@ contract ExtensionLpTest is Test {
         // User2: tokenRatio = 200e18 * 1e18 / 300e18 = 666666666666666666, govRatio = 4e17, score = 4e17
 
         (uint256 mintReward1, uint256 burnReward1, bool claimed1) = extension
-            .rewardInfoByAccount(round, user1);
+            .rewardByAccount(round, user1);
         (uint256 mintReward2, uint256 burnReward2, bool claimed2) = extension
-            .rewardInfoByAccount(round, user2);
+            .rewardByAccount(round, user2);
 
         // User1: mintReward = 1000e18 * 2e17 / 1e18 = 200e18
         //        theoreticalReward = 1000e18 * 333333333333333333 / 1e18 = 333333333333333333000
@@ -313,7 +313,7 @@ contract ExtensionLpTest is Test {
 
         // Check reward info after claim
         (uint256 mintReward, uint256 burnReward, bool claimed) = extension
-            .rewardInfoByAccount(round, user1);
+            .rewardByAccount(round, user1);
 
         assertEq(mintReward, 200e18, "mintReward should be 200e18");
         assertEq(burnReward, 800e18, "burnReward should be 800e18");
@@ -332,7 +332,7 @@ contract ExtensionLpTest is Test {
 
         // User3 didn't join
         (uint256 mintReward, uint256 burnReward, bool claimed) = extension
-            .rewardInfoByAccount(round, user3);
+            .rewardByAccount(round, user3);
 
         assertEq(mintReward, 0, "Non-joined user mintReward should be 0");
         assertEq(burnReward, 0, "Non-joined user burnReward should be 0");
