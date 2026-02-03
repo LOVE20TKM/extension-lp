@@ -29,11 +29,11 @@ contract GovVotesTest is Test {
         (bob, alice) = h.finish_launch();
         tokenAddress = h.firstTokenAddress();
 
-        // Create extension with MIN_GOV_VOTES = 1e18
+        // Create extension with MIN_GOV_RATIO = 1e17 (10%)
         extension = h.createExtension(
             tokenAddress,
             2,
-            1e18 // MIN_GOV_VOTES
+            1e17 // MIN_GOV_RATIO
         );
 
         // Setup action with extension address as whiteListAddress
@@ -46,7 +46,7 @@ contract GovVotesTest is Test {
         alice.actionId = bob.actionId;
     }
 
-    function test_join_revertIfInsufficientGovVotes() public {
+    function test_join_revertIfInsufficientGovRatio() public {
         // Create user with insufficient gov votes
         FlowUserParams memory poorUser = h.createUser(
             "poorUser",
@@ -70,22 +70,23 @@ contract GovVotesTest is Test {
             poorUser.userAddress
         );
 
-        // If gov votes is less than MIN_GOV_VOTES, should revert
-        if (govVotes < 1e18) {
+        // If gov ratio is less than MIN_GOV_RATIO, should revert
+        uint256 totalV = h.stakeContract().govVotesNum(tokenAddress);
+        uint256 userRatio = totalV == 0 ? 0 : (govVotes * 1e18) / totalV;
+        if (userRatio < 1e17) {
             h.next_phase();
-            // extension_join will automatically add liquidity to Uniswap pair if needed
             uint256 lpAmount = 1e18;
             IUniswapV2Pair lpToken = h.getLpToken(tokenAddress);
 
             vm.startPrank(poorUser.userAddress);
             IERC20(address(lpToken)).approve(address(extension), lpAmount);
-            vm.expectRevert(ILpErrors.InsufficientGovVotes.selector);
+            vm.expectRevert(ILpErrors.InsufficientGovRatio.selector);
             extension.join(lpAmount, new string[](0));
             vm.stopPrank();
         }
     }
 
-    function test_join_succeedWithExactMinGovVotes() public {
+    function test_join_succeedWithExactMinGovRatio() public {
         h.stake_liquidity(bob);
         h.stake_token(bob);
         h.vote(bob);
@@ -95,7 +96,9 @@ contract GovVotesTest is Test {
             tokenAddress,
             bob.userAddress
         );
-        assertGe(govVotes, 1e18, "Bob should have at least MIN_GOV_VOTES");
+        uint256 totalV = h.stakeContract().govVotesNum(tokenAddress);
+        uint256 bobRatio = totalV == 0 ? 0 : (govVotes * 1e18) / totalV;
+        assertGe(bobRatio, 1e17, "Bob ratio should be at least MIN_GOV_RATIO (10%)");
 
         h.next_phase();
         // extension_join will automatically add liquidity to Uniswap pair if needed
@@ -109,12 +112,11 @@ contract GovVotesTest is Test {
         assertEq(amount, lpAmount);
     }
 
-    function test_join_succeedWithMoreThanMinGovVotes() public {
+    function test_join_succeedWithMoreThanMinGovRatio() public {
         h.stake_liquidity(bob);
         h.stake_token(bob);
         h.vote(bob);
 
-        // Stake more to get more gov votes (in the same phase, just call again)
         h.stake_liquidity(bob);
         h.stake_token(bob);
 
@@ -122,7 +124,9 @@ contract GovVotesTest is Test {
             tokenAddress,
             bob.userAddress
         );
-        assertGt(govVotes, 1e18, "Bob should have more than MIN_GOV_VOTES");
+        uint256 totalV = h.stakeContract().govVotesNum(tokenAddress);
+        uint256 bobRatio = totalV == 0 ? 0 : (govVotes * 1e18) / totalV;
+        assertGt(bobRatio, 1e17, "Bob ratio should be more than MIN_GOV_RATIO (10%)");
 
         h.next_phase();
         // extension_join will automatically add liquidity to Uniswap pair if needed

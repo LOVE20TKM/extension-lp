@@ -11,6 +11,6 @@ interface ILpFactory is ILpFactoryErrors {
         address tokenAddress,
         address joinLpTokenAddress,
         uint256 govRatioMultiplier,
-        uint256 minGovVotes
+        uint256 minGovRatio
     ) external returns (address extension);
 }

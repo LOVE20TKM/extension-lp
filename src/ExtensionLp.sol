@@ -21,7 +21,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     uint256 internal constant PRECISION = 1e18;
 
     uint256 public immutable GOV_RATIO_MULTIPLIER;
-    uint256 public immutable MIN_GOV_VOTES;
+    uint256 public immutable MIN_GOV_RATIO;
 
     ILOVE20Stake internal immutable _stake;
 
@@ -34,7 +34,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         address tokenAddress_,
         address joinTokenAddress_,
         uint256 govRatioMultiplier_,
-        uint256 minGovVotes_
+        uint256 minGovRatio_
     )
         ExtensionBaseRewardTokenJoin(
             factory_,
@@ -44,7 +44,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         )
     {
         GOV_RATIO_MULTIPLIER = govRatioMultiplier_;
-        MIN_GOV_VOTES = minGovVotes_;
+        MIN_GOV_RATIO = minGovRatio_;
         _stake = ILOVE20Stake(_center.stakeAddress());
     }
 
@@ -55,13 +55,14 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         bool isFirstJoin = _lastJoinedBlockByAccount[msg.sender] == 0;
 
         if (isFirstJoin) {
+            uint256 totalGovVotes = _stake.govVotesNum(TOKEN_ADDRESS);
+            if (totalGovVotes == 0) revert ZeroTotalGovVotes();
             uint256 userGovVotes = _stake.validGovVotes(
                 TOKEN_ADDRESS,
                 msg.sender
             );
-            if (userGovVotes < MIN_GOV_VOTES) {
-                revert InsufficientGovVotes();
-            }
+            uint256 userRatio = (userGovVotes * PRECISION) / totalGovVotes;
+            if (userRatio < MIN_GOV_RATIO) revert InsufficientGovRatio();
         }
 
         uint256 currentRound = _join.currentRound();

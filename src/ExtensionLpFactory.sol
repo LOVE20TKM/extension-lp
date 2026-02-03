@@ -15,7 +15,7 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
         address tokenAddress,
         address joinLpTokenAddress,
         uint256 govRatioMultiplier,
-        uint256 minGovVotes
+        uint256 minGovRatio
     ) external returns (address extension) {
         _validateJoinLpTokenAddress(tokenAddress, joinLpTokenAddress);
 
@@ -25,7 +25,7 @@ contract ExtensionLpFactory is ExtensionFactoryBase, ILpFactory {
                 tokenAddress,
                 joinLpTokenAddress,
                 govRatioMultiplier,
-                minGovVotes
+                minGovRatio
             )
         );
 

@@ -26,7 +26,7 @@ contract BlockRatioAcrossRoundsTest is Test {
         extension = h.createExtension(
             tokenAddress,
             2, // GOV_RATIO_MULTIPLIER = 2
-            1e12 // MIN_GOV_VOTES = 1e12 (very low for testing)
+            1e12 // MIN_GOV_RATIO = 1e12 (very low for testing)
         );
 
         h.stake_liquidity(bob);

@@ -50,7 +50,7 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
     FlowUserParams public alice;
 
     uint256 public constant DEFAULT_GOV_RATIO_MULTIPLIER = 2;
-    uint256 public constant DEFAULT_MIN_GOV_VOTES = 1e18;
+    uint256 public constant DEFAULT_MIN_GOV_RATIO = 1e17; // 10%
 
     constructor() {
         // Parent constructor will call _setUp() which triggers DeployContractsForTest
@@ -160,7 +160,7 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
     function createExtension(
         address tokenAddress,
         uint256 govRatioMultiplier,
-        uint256 minGovVotes
+        uint256 minGovRatio
     ) public returns (ExtensionLp) {
         // Get real UniswapV2Pair from SL Token
         address slTokenAddress = ILOVE20Token(tokenAddress).slAddress();
@@ -175,7 +175,7 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
             tokenAddress,
             pairAddress,
             govRatioMultiplier,
-            minGovVotes
+            minGovRatio
         );
 
         ExtensionLp extension = ExtensionLp(extensionAddress);
@@ -191,7 +191,7 @@ contract TestExtensionLpHelper is TestBaseNoDeployContractsForTest {
             createExtension(
                 tokenAddress,
                 DEFAULT_GOV_RATIO_MULTIPLIER,
-                DEFAULT_MIN_GOV_VOTES
+                DEFAULT_MIN_GOV_RATIO
             );
     }
 

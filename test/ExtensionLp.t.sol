@@ -62,7 +62,7 @@ contract ExtensionLpTest is Test {
 
     uint256 constant ACTION_ID = 1;
     uint256 constant GOV_RATIO_MULTIPLIER = 2;
-    uint256 constant MIN_GOV_VOTES = 1e18;
+    uint256 constant MIN_GOV_RATIO = 1e17; // 10%
 
     function setUp() public {
         // Deploy mock contracts
@@ -111,7 +111,7 @@ contract ExtensionLpTest is Test {
                 address(token),
                 address(joinToken),
                 GOV_RATIO_MULTIPLIER,
-                MIN_GOV_VOTES
+                MIN_GOV_RATIO
             )
         );
 
@@ -178,7 +178,7 @@ contract ExtensionLpTest is Test {
             address(token),
             address(invalidStakeToken),
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES
+                MIN_GOV_RATIO
         );
     }
 
@@ -198,7 +198,7 @@ contract ExtensionLpTest is Test {
             address(token),
             address(wrongPair),
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES
+            MIN_GOV_RATIO
         );
     }
 
@@ -428,9 +428,9 @@ contract ExtensionLpTest is Test {
             "govRatioMult mismatch"
         );
         assertEq(
-            extension.MIN_GOV_VOTES(),
-            MIN_GOV_VOTES,
-            "minGovVotesVal mismatch"
+            extension.MIN_GOV_RATIO(),
+            MIN_GOV_RATIO,
+            "minGovRatioVal mismatch"
         );
         assertEq(extension.actionId(), ACTION_ID, "actionId mismatch");
     }
@@ -445,34 +445,52 @@ contract ExtensionLpTest is Test {
             address(token),
             address(0),
             GOV_RATIO_MULTIPLIER,
-            MIN_GOV_VOTES
+            MIN_GOV_RATIO
         );
     }
 
     // ============================================
-    // Min Gov Votes Tests (LP-specific)
+    // Min Gov Ratio Tests (LP-specific)
     // ============================================
 
-    function test_Join_RevertIfInsufficientGovVotes() public {
+    function test_Join_RevertIfInsufficientGovRatio() public {
         address poorUser = address(0x999);
         joinToken.mint(poorUser, 1000e18);
         vm.prank(poorUser);
         joinToken.approve(address(extension), type(uint256).max);
 
-        stake.setValidGovVotes(address(token), poorUser, MIN_GOV_VOTES - 1);
+        // total=1000e18, 99e18 gives 9.9% < 10% = MIN_GOV_RATIO
+        stake.setValidGovVotes(address(token), poorUser, 99e18);
 
         vm.prank(poorUser);
-        vm.expectRevert(ILpErrors.InsufficientGovVotes.selector);
+        vm.expectRevert(ILpErrors.InsufficientGovRatio.selector);
         extension.join(100e18, new string[](0));
     }
 
-    function test_Join_SucceedWithExactMinGovVotes() public {
+    function test_Join_RevertIfZeroTotalGovVotes() public {
+        address newUser = address(0xa);
+        joinToken.mint(newUser, 1000e18);
+        vm.prank(newUser);
+        joinToken.approve(address(extension), type(uint256).max);
+
+        stake.setGovVotesNum(address(token), 0);
+        stake.setValidGovVotes(address(token), newUser, 100e18);
+
+        vm.prank(newUser);
+        vm.expectRevert(ILpErrors.ZeroTotalGovVotes.selector);
+        extension.join(100e18, new string[](0));
+
+        stake.setGovVotesNum(address(token), 1000e18);
+    }
+
+    function test_Join_SucceedWithExactMinGovRatio() public {
         address minUser = address(0x888);
         joinToken.mint(minUser, 1000e18);
         vm.prank(minUser);
         joinToken.approve(address(extension), type(uint256).max);
 
-        stake.setValidGovVotes(address(token), minUser, MIN_GOV_VOTES);
+        // total=1000e18, 100e18 gives 10% = MIN_GOV_RATIO
+        stake.setValidGovVotes(address(token), minUser, 100e18);
 
         vm.prank(minUser);
         extension.join(100e18, new string[](0));
@@ -482,13 +500,13 @@ contract ExtensionLpTest is Test {
         assertEq(amount, 100e18);
     }
 
-    function test_Join_SucceedWithMoreThanMinGovVotes() public {
+    function test_Join_SucceedWithMoreThanMinGovRatio() public {
         address richUser = address(0x777);
         joinToken.mint(richUser, 1000e18);
         vm.prank(richUser);
         joinToken.approve(address(extension), type(uint256).max);
 
-        stake.setValidGovVotes(address(token), richUser, MIN_GOV_VOTES * 10);
+        stake.setValidGovVotes(address(token), richUser, 1000e18);
 
         vm.prank(richUser);
         extension.join(100e18, new string[](0));
@@ -497,8 +515,8 @@ contract ExtensionLpTest is Test {
         assertEq(amount, 100e18);
     }
 
-    function test_ImmutableVariables_MinGovVotes() public view {
-        assertEq(extension.MIN_GOV_VOTES(), MIN_GOV_VOTES);
+    function test_ImmutableVariables_MinGovRatio() public view {
+        assertEq(extension.MIN_GOV_RATIO(), MIN_GOV_RATIO);
     }
 
     // ============================================

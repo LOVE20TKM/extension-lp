@@ -31,7 +31,7 @@ contract EdgeCasesTest is Test {
         tokenAddress = h.firstTokenAddress();
         extension = h.createExtensionWithDefaults(tokenAddress);
 
-        // Create extension with MIN_GOV_VOTES = 0 for test_extension_minGovVotes_zero
+        // Create extension with MIN_GOV_RATIO = 0 for test_extension_minGovRatio_zero
         extensionZeroMin = h.createExtension(tokenAddress, 2, 0);
 
         // Setup action with extension address as whiteListAddress
@@ -43,7 +43,7 @@ contract EdgeCasesTest is Test {
         );
         alice.actionId = bob.actionId;
 
-        // Note: extensionZeroMin action will be submitted in test_extension_minGovVotes_zero
+        // Note: extensionZeroMin action will be submitted in test_extension_minGovRatio_zero
         // in a new round to avoid OnlyOneSubmitPerRound() error
     }
 
@@ -215,8 +215,8 @@ contract EdgeCasesTest is Test {
         }
     }
 
-    function test_extension_minGovVotes_zero() public {
-        // Use extensionZeroMin from setUp (already created with MIN_GOV_VOTES = 0)
+    function test_extension_minGovRatio_zero() public {
+        // Use extensionZeroMin from setUp (already created with MIN_GOV_RATIO = 0)
         // Create user with no gov votes
         FlowUserParams memory poorUser = h.createUser(
             "poorUser",
@@ -252,7 +252,7 @@ contract EdgeCasesTest is Test {
         // extension_join will automatically add liquidity to Uniswap pair if needed
         uint256 lpAmount = 1e18;
 
-        // Should succeed with MIN_GOV_VOTES = 0
+        // Should succeed with MIN_GOV_RATIO = 0 (totalGovVotes > 0 from stake)
         h.extension_join(poorUser, extensionZeroMin, lpAmount);
 
         (, uint256 amount, , ) = extensionZeroMin.joinInfo(
