@@ -365,7 +365,9 @@ contract ExtensionLpTest is Test {
     }
 
     /// @notice When claimed, returns stored gov ratio at claim time and claimed=true; later stake change does not change returned ratio
-    function test_GovRatio_Claimed_ReturnsStoredGovRatioAndClaimedTrue() public {
+    function test_GovRatio_Claimed_ReturnsStoredGovRatioAndClaimedTrue()
+        public
+    {
         vm.prank(user1);
         extension.join(100e18, new string[](0));
 
@@ -543,22 +545,6 @@ contract ExtensionLpTest is Test {
         vm.prank(poorUser);
         vm.expectRevert(ILpErrors.InsufficientGovRatio.selector);
         extension.join(100e18, new string[](0));
-    }
-
-    function test_Join_RevertIfZeroTotalGovVotes() public {
-        address newUser = address(0xa);
-        joinToken.mint(newUser, 1000e18);
-        vm.prank(newUser);
-        joinToken.approve(address(extension), type(uint256).max);
-
-        stake.setGovVotesNum(address(token), 0);
-        stake.setValidGovVotes(address(token), newUser, 100e18);
-
-        vm.prank(newUser);
-        vm.expectRevert(ILpErrors.ZeroTotalGovVotes.selector);
-        extension.join(100e18, new string[](0));
-
-        stake.setGovVotesNum(address(token), 1000e18);
     }
 
     function test_Join_SucceedWithExactMinGovRatio() public {

@@ -3,7 +3,6 @@ pragma solidity =0.8.17;
 
 interface ILpErrors {
     error InsufficientGovRatio();
-    error ZeroTotalGovVotes();
 }
 
 interface ILp is ILpErrors {
