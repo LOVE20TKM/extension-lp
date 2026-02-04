@@ -15,4 +15,9 @@ interface ILp is ILpErrors {
         address account,
         uint256 joinedRound
     ) external view returns (uint256 lastJoinedBlock);
+
+    function govRatio(
+        uint256 round,
+        address account
+    ) external view returns (uint256 ratio, bool claimed);
 }

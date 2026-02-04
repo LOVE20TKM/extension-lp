@@ -29,6 +29,9 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     mapping(address => mapping(uint256 => uint256))
         internal _lastJoinedBlockByAccountByJoinedRound;
 
+    /// @dev round => account => gov ratio at claim time
+    mapping(uint256 => mapping(address => uint256)) internal _govRatio;
+
     constructor(
         address factory_,
         address tokenAddress_,
@@ -177,5 +180,36 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         uint256 joinedRound
     ) external view returns (uint256 lastJoinedBlock) {
         return _lastJoinedBlockByAccountByJoinedRound[account][joinedRound];
+    }
+
+    /// @return Account's gov ratio (1e18): govValid / govTotal; 0 if govTotal==0
+    function _calculateGovRatio(
+        address account
+    ) internal view returns (uint256) {
+        uint256 govTotal = _stake.govVotesNum(TOKEN_ADDRESS);
+        if (govTotal == 0) return 0;
+        uint256 govValid = _stake.validGovVotes(TOKEN_ADDRESS, account);
+        return (govValid * PRECISION) / govTotal;
+    }
+
+    function govRatio(
+        uint256 round,
+        address account
+    ) external view returns (uint256 ratio, bool claimed) {
+        claimed = _claimedByAccount[round][account];
+        if (claimed) {
+            ratio = _govRatio[round][account];
+        } else {
+            ratio = _calculateGovRatio(account);
+        }
+    }
+
+    function _claimReward(
+        uint256 round
+    ) internal override returns (uint256 mintReward, uint256 burnReward) {
+        uint256 ratioAtClaim = _calculateGovRatio(msg.sender);
+        (mintReward, burnReward) = super._claimReward(round);
+        _govRatio[round][msg.sender] = ratioAtClaim;
+        return (mintReward, burnReward);
     }
 }

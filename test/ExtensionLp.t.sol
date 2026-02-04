@@ -340,6 +340,84 @@ contract ExtensionLpTest is Test {
     }
 
     // ============================================
+    // govRatio Tests
+    // ============================================
+
+    /// @notice When not claimed, returns current gov ratio and claimed=false
+    function test_GovRatio_NotClaimed_ReturnsCurrentGovRatioAndClaimedFalse()
+        public
+    {
+        vm.prank(user1);
+        extension.join(100e18, new string[](0));
+
+        uint256 targetRound = verify.currentRound();
+        verify.setCurrentRound(targetRound + 1);
+
+        // setUp: govVotesNum(token)=1000e18, validGovVotes(token, user1)=100e18
+        // Expected ratio = 100e18 * 1e18 / 1000e18 = 0.1e18
+        uint256 govTotal = 1000e18;
+        uint256 govValid = 100e18;
+        uint256 expectedGovRatio = (govValid * 1e18) / govTotal;
+
+        (uint256 ratio, bool claimed) = extension.govRatio(targetRound, user1);
+        assertEq(ratio, expectedGovRatio, "govRatio should be current ratio");
+        assertFalse(claimed, "claimed should be false");
+    }
+
+    /// @notice When claimed, returns stored gov ratio at claim time and claimed=true; later stake change does not change returned ratio
+    function test_GovRatio_Claimed_ReturnsStoredGovRatioAndClaimedTrue() public {
+        vm.prank(user1);
+        extension.join(100e18, new string[](0));
+
+        uint256 targetRound = verify.currentRound();
+        verify.setCurrentRound(targetRound + 1);
+
+        uint256 govTotalBefore = 1000e18;
+        uint256 govValidBefore = 100e18;
+        uint256 expectedStoredRatio = (govValidBefore * 1e18) / govTotalBefore;
+
+        mint.setActionReward(address(token), targetRound, ACTION_ID, 1000e18);
+        vm.prank(user1);
+        extension.claimReward(targetRound);
+
+        (uint256 ratioAfterClaim, bool claimedAfter) = extension.govRatio(
+            targetRound,
+            user1
+        );
+        assertEq(
+            ratioAfterClaim,
+            expectedStoredRatio,
+            "govRatio after claim should be ratio at claim time"
+        );
+        assertTrue(claimedAfter, "claimed should be true");
+
+        // Change stake so current ratio would differ; stored ratio must remain
+        stake.setValidGovVotes(address(token), user1, 500e18);
+        stake.setGovVotesNum(address(token), 1000e18);
+
+        (uint256 ratioLater, bool claimedLater) = extension.govRatio(
+            targetRound,
+            user1
+        );
+        assertEq(
+            ratioLater,
+            expectedStoredRatio,
+            "govRatio should stay stored value after stake change"
+        );
+        assertTrue(claimedLater, "claimed should still be true");
+    }
+
+    /// @notice When govTotal is 0, returns govRatio=0 and claimed=false for unclaimed account
+    function test_GovRatio_GovTotalZero_ReturnsZeroRatio() public {
+        stake.setGovVotesNum(address(token), 0);
+        stake.setValidGovVotes(address(token), user1, 100e18);
+
+        (uint256 ratio, bool claimed) = extension.govRatio(0, user1);
+        assertEq(ratio, 0, "govRatio should be 0 when govTotal is 0");
+        assertFalse(claimed, "claimed should be false");
+    }
+
+    // ============================================
     // Factory Tests
     // ============================================
 
