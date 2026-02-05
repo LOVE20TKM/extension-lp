@@ -134,4 +134,66 @@ contract FlowTest is Test {
         uint256 balanceAfter = IERC20(tokenAddress).balanceOf(bob.userAddress);
         assertGt(balanceAfter, balanceBefore, "Should receive reward");
     }
+
+    function test_claimRewards_batchClaim() public {
+        // Round N
+        h.stake_liquidity(bob);
+        h.stake_token(bob);
+        h.vote(bob);
+
+        h.next_phase();
+        h.extension_join(bob, extension, 1e18);
+
+        h.next_phase();
+        h.verify(bob);
+
+        h.next_phase(); // mint phase
+        uint256 round1 = h.verifyContract().currentRound() - 1;
+
+        // Round N+1
+        h.next_phase(); // next vote phase
+        h.resubmit_action(bob, address(extension));
+        h.vote(bob);
+
+        h.next_phase(); // join phase (bob doesn't join again, LP continues)
+
+        h.next_phase(); // verify
+        h.verify(bob);
+
+        h.next_phase(); // mint
+        uint256 round2 = h.verifyContract().currentRound() - 1;
+
+        assertGt(round2, round1, "Round 2 should be after round 1");
+
+        // Batch claim both rounds
+        uint256[] memory rounds = new uint256[](2);
+        rounds[0] = round1;
+        rounds[1] = round2;
+
+        uint256 balanceBefore = IERC20(tokenAddress).balanceOf(bob.userAddress);
+
+        vm.prank(bob.userAddress);
+        (
+            uint256[] memory claimedRounds,
+            uint256[] memory mintRewards,
+            uint256[] memory burnRewards
+        ) = extension.claimRewards(rounds);
+
+        uint256 balanceAfter = IERC20(tokenAddress).balanceOf(bob.userAddress);
+
+        assertEq(claimedRounds.length, 2, "Should claim 2 rounds");
+        assertGt(mintRewards[0], 0, "Round 1 mint > 0");
+        assertGt(mintRewards[1], 0, "Round 2 mint > 0");
+        assertEq(
+            balanceAfter - balanceBefore,
+            mintRewards[0] + mintRewards[1],
+            "Balance change should equal total mint"
+        );
+
+        // Verify both marked as claimed
+        (, , bool c1) = extension.rewardByAccount(round1, bob.userAddress);
+        (, , bool c2) = extension.rewardByAccount(round2, bob.userAddress);
+        assertTrue(c1, "Round 1 claimed");
+        assertTrue(c2, "Round 2 claimed");
+    }
 }

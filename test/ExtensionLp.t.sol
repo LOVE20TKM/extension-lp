@@ -869,4 +869,338 @@ contract ExtensionLpTest is Test {
         assertEq(burnAmount, 0, "burnAmount should be 0 for current round");
         assertFalse(burned, "Should not be burned for current round");
     }
+
+    // ============================================
+    // Helper: Create Extension with Custom Params
+    // ============================================
+
+    function _createExtensionWithParams(
+        uint256 govRatioMultiplier,
+        uint256 minGovRatio,
+        uint256 newActionId
+    ) internal returns (ExtensionLp) {
+        token.mint(address(this), 1e18);
+        token.approve(address(factory), 1e18);
+        ExtensionLp newExt = ExtensionLp(
+            factory.createExtension(
+                address(token),
+                address(joinToken),
+                govRatioMultiplier,
+                minGovRatio
+            )
+        );
+
+        submit.setActionInfo(address(token), newActionId, address(newExt));
+        submit.setActionAuthor(address(token), newActionId, address(this));
+        vote.setVotedActionIds(
+            address(token),
+            join.currentRound(),
+            newActionId
+        );
+        token.mint(address(newExt), 10000e18);
+        return newExt;
+    }
+
+    // ============================================
+    // GOV_RATIO_MULTIPLIER == 0 Reward Tests
+    // ============================================
+
+    function test_RewardCalculation_GovRatioMultiplierZero_FullBlockRatio()
+        public
+    {
+        uint256 newActionId = 2;
+        ExtensionLp extZero = _createExtensionWithParams(0, 0, newActionId);
+
+        vm.prank(user1);
+        joinToken.approve(address(extZero), type(uint256).max);
+        vm.prank(user1);
+        extZero.join(100e18, new string[](0));
+
+        uint256 round = verify.currentRound();
+        verify.setCurrentRound(round + 1);
+
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, newActionId, totalReward);
+
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extZero
+            .rewardByAccount(round, user1);
+
+        // User1 has 100% LP, joined at start of round -> blockRatio = 100%
+        // GOV_RATIO_MULTIPLIER == 0 -> only LP ratio and block ratio matter
+        // mintReward = theoreticalReward * blockRatio / PRECISION = 1000e18
+        assertEq(
+            mintReward,
+            1000e18,
+            "Full block ratio mint should equal total reward"
+        );
+        assertEq(burnReward, 0, "Full block ratio burn should be 0");
+        assertFalse(claimed);
+    }
+
+    function test_RewardCalculation_GovRatioMultiplierZero_PartialBlockRatio()
+        public
+    {
+        uint256 newActionId = 2;
+        ExtensionLp extZero = _createExtensionWithParams(0, 0, newActionId);
+
+        // Join at block 150 (mid round 1: blocks 100-199)
+        vm.roll(150);
+        vm.prank(user1);
+        joinToken.approve(address(extZero), type(uint256).max);
+        vm.prank(user1);
+        extZero.join(100e18, new string[](0));
+
+        uint256 round = verify.currentRound();
+        verify.setCurrentRound(round + 1);
+
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, newActionId, totalReward);
+
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extZero
+            .rewardByAccount(round, user1);
+
+        // roundEndBlock = 0 + (1+1)*100 - 1 = 199
+        // blocksInRound = 199 - 150 + 1 = 50
+        // blockRatio = 50 * 1e18 / 100 = 5e17 (50%)
+        // mintReward = 1000e18 * 5e17 / 1e18 = 500e18
+        // burnReward = 1000e18 - 500e18 = 500e18
+        assertEq(mintReward, 500e18, "Partial block ratio mint");
+        assertEq(burnReward, 500e18, "Partial block ratio burn");
+        assertFalse(claimed);
+    }
+
+    // ============================================
+    // totalGovVotes == 0 Reward Tests
+    // ============================================
+
+    function test_RewardCalculation_TotalGovVotesZero() public {
+        // user1 joins with existing gov ratio (100e18/1000e18 = 10% >= MIN_GOV_RATIO)
+        vm.prank(user1);
+        extension.join(100e18, new string[](0));
+
+        // Set totalGovVotes to 0 AFTER joining
+        stake.setGovVotesNum(address(token), 0);
+
+        uint256 round = verify.currentRound();
+        verify.setCurrentRound(round + 1);
+
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, ACTION_ID, totalReward);
+
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
+            .rewardByAccount(round, user1);
+
+        // totalGovVotes == 0 and GOV_RATIO_MULTIPLIER != 0
+        // -> return (0, theoreticalReward) = (0, 1000e18)
+        assertEq(mintReward, 0, "Mint should be 0 when totalGovVotes is 0");
+        assertEq(
+            burnReward,
+            1000e18,
+            "Burn should equal full theoretical reward"
+        );
+        assertFalse(claimed);
+    }
+
+    // ============================================
+    // effectiveRatio == lpRatio (Zero Burn) Tests
+    // ============================================
+
+    function test_RewardCalculation_GovRatioLargerThanLpRatio_ZeroBurn()
+        public
+    {
+        // Give user1 ALL gov votes so govVotesRatio >= lpRatio
+        stake.setValidGovVotes(address(token), user1, 1000e18);
+
+        vm.prank(user1);
+        extension.join(100e18, new string[](0));
+
+        uint256 round = verify.currentRound();
+        verify.setCurrentRound(round + 1);
+
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, ACTION_ID, totalReward);
+
+        (uint256 mintReward, uint256 burnReward, bool claimed) = extension
+            .rewardByAccount(round, user1);
+
+        // lpRatio = 100e18 * 1e18 / 100e18 = 1e18 (100%)
+        // govVotesRatio = 1000e18 * 1e18 * 2 / 1000e18 = 2e18 (200%)
+        // effectiveRatio = min(1e18, 2e18) = 1e18
+        // blockRatio = 1e18 (joined at start of round)
+        // mintReward = 1000e18 * 1e18 / 1e18 = 1000e18
+        // burnReward = 1000e18 - 1000e18 = 0
+        assertEq(mintReward, 1000e18, "All reward should be minted");
+        assertEq(burnReward, 0, "No burn when gov ratio >= lp ratio");
+        assertFalse(claimed);
+    }
+
+    // ============================================
+    // claimRewards (Batch) Tests
+    // ============================================
+
+    function test_ClaimRewards_BatchClaim() public {
+        vm.prank(user1);
+        extension.join(100e18, new string[](0));
+
+        uint256 round1 = verify.currentRound(); // 1
+
+        // Set rewards for round 1 and round 2
+        mint.setActionReward(address(token), round1, ACTION_ID, 1000e18);
+        mint.setActionReward(
+            address(token),
+            round1 + 1,
+            ACTION_ID,
+            500e18
+        );
+
+        // Advance verify to make both rounds claimable
+        verify.setCurrentRound(round1 + 2);
+
+        // Pre-calculate expected rewards
+        // Round 1: lpRatio=1e18, govVotesRatio=2e17, effectiveRatio=2e17
+        //   blockRatio=1e18 (joined at start of round)
+        //   mintReward = 1000e18 * 2e17 / 1e18 = 200e18
+        //   burnReward = 1000e18 - 200e18 = 800e18
+        uint256 expectedMint1 = 200e18;
+        uint256 expectedBurn1 = 800e18;
+        // Round 2: LP continues (joinedBlock==0 for round 2), blockRatio=1e18
+        //   mintReward = 500e18 * 2e17 / 1e18 = 100e18
+        //   burnReward = 500e18 - 100e18 = 400e18
+        uint256 expectedMint2 = 100e18;
+        uint256 expectedBurn2 = 400e18;
+
+        uint256[] memory rounds = new uint256[](2);
+        rounds[0] = round1;
+        rounds[1] = round1 + 1;
+
+        uint256 balanceBefore = token.balanceOf(user1);
+
+        vm.prank(user1);
+        (
+            uint256[] memory claimedRounds,
+            uint256[] memory mintRewards,
+            uint256[] memory burnRewards
+        ) = extension.claimRewards(rounds);
+
+        assertEq(claimedRounds.length, 2, "Should claim 2 rounds");
+        assertEq(claimedRounds[0], round1);
+        assertEq(claimedRounds[1], round1 + 1);
+        assertEq(mintRewards[0], expectedMint1, "Round 1 mint");
+        assertEq(mintRewards[1], expectedMint2, "Round 2 mint");
+        assertEq(burnRewards[0], expectedBurn1, "Round 1 burn");
+        assertEq(burnRewards[1], expectedBurn2, "Round 2 burn");
+
+        assertEq(
+            token.balanceOf(user1) - balanceBefore,
+            expectedMint1 + expectedMint2,
+            "Total mint transfer"
+        );
+
+        (, , bool claimed1) = extension.rewardByAccount(round1, user1);
+        (, , bool claimed2) = extension.rewardByAccount(round1 + 1, user1);
+        assertTrue(claimed1, "Round 1 claimed");
+        assertTrue(claimed2, "Round 2 claimed");
+    }
+
+    function test_ClaimRewards_SkipsAlreadyClaimed() public {
+        vm.prank(user1);
+        extension.join(100e18, new string[](0));
+
+        uint256 round1 = verify.currentRound();
+        uint256 round2 = round1 + 1;
+
+        mint.setActionReward(address(token), round1, ACTION_ID, 1000e18);
+        mint.setActionReward(address(token), round2, ACTION_ID, 500e18);
+        verify.setCurrentRound(round1 + 2);
+
+        // Claim round 1 individually
+        vm.prank(user1);
+        extension.claimReward(round1);
+
+        // Batch claim both - round 1 should be skipped
+        uint256[] memory rounds = new uint256[](2);
+        rounds[0] = round1;
+        rounds[1] = round2;
+
+        vm.prank(user1);
+        (
+            uint256[] memory claimedRounds,
+            uint256[] memory mintRewards,
+            uint256[] memory burnRewards
+        ) = extension.claimRewards(rounds);
+
+        // Only round 2 should be claimed
+        assertEq(claimedRounds.length, 1, "Should only claim round 2");
+        assertEq(claimedRounds[0], round2);
+        assertEq(mintRewards[0], 100e18, "Round 2 mint");
+        assertEq(burnRewards[0], 400e18, "Round 2 burn");
+    }
+
+    // ============================================
+    // lastJoinedBlockByAccountByJoinedRound Tests
+    // ============================================
+
+    function test_LastJoinedBlockByAccountByJoinedRound_FirstJoin() public {
+        // user1 joins at block 100 (from setUp vm.roll(100))
+        vm.prank(user1);
+        extension.join(50e18, new string[](0));
+
+        uint256 round = join.currentRound();
+        assertEq(
+            extension.lastJoinedBlockByAccountByJoinedRound(user1, round),
+            100,
+            "Should record block 100 for first join"
+        );
+    }
+
+    function test_LastJoinedBlockByAccountByJoinedRound_UpdatedOnSameRound()
+        public
+    {
+        vm.prank(user1);
+        extension.join(50e18, new string[](0));
+
+        vm.roll(110);
+        vm.prank(user1);
+        extension.join(50e18, new string[](0));
+
+        uint256 round = join.currentRound();
+        assertEq(
+            extension.lastJoinedBlockByAccountByJoinedRound(user1, round),
+            110,
+            "Should update to block 110 on second join"
+        );
+    }
+
+    function test_LastJoinedBlockByAccountByJoinedRound_NotUpdatedAcrossRounds()
+        public
+    {
+        // user1 joins in round 1 at block 100
+        vm.prank(user1);
+        extension.join(50e18, new string[](0));
+
+        uint256 round1 = join.currentRound(); // 1
+
+        // Advance to round 2
+        join.setCurrentRound(2);
+        vote.setVotedActionIds(address(token), 2, ACTION_ID);
+
+        // Add more LP in round 2 (not first join, and currentRound != joinedRound)
+        vm.roll(200);
+        vm.prank(user1);
+        extension.join(50e18, new string[](0));
+
+        // Round 1 block should still be 100
+        assertEq(
+            extension.lastJoinedBlockByAccountByJoinedRound(user1, round1),
+            100,
+            "Round 1 join block should still be 100"
+        );
+
+        // Round 2 should be 0 (not updated since not first join and not joinedRound)
+        assertEq(
+            extension.lastJoinedBlockByAccountByJoinedRound(user1, 2),
+            0,
+            "Round 2 join block should be 0 (not updated)"
+        );
+    }
 }

@@ -223,4 +223,65 @@ contract RewardCalculationTest is Test {
             aliceBurnReward;
         assertGt(totalReward, 0, "Total reward should be > 0");
     }
+
+    function test_rewardCalculation_govRatioMultiplierZero() public {
+        // Skip current round to reach a new vote phase
+        h.next_phase(); // join
+        h.next_phase(); // verify
+        h.next_phase(); // mint
+        h.next_phase(); // next vote/submit
+
+        // Create extension with GOV_RATIO_MULTIPLIER = 0, MIN_GOV_RATIO = 0
+        ExtensionLp extZero = h.createExtension(tokenAddress, 0, 0);
+
+        // Ensure bob has enough tokens
+        h.forceMint(tokenAddress, bob.userAddress, 1e24);
+        h.ensureUserHasMinimumTokensForStaking(bob);
+
+        // Submit action for extZero
+        bob.actionId = h.submit_new_action_with_extension(
+            bob,
+            address(extZero)
+        );
+
+        // Stake and vote
+        h.stake_liquidity(bob);
+        h.stake_token(bob);
+        h.vote(bob);
+
+        // Join
+        h.next_phase();
+        h.extension_join(bob, extZero, 1e18);
+
+        // Verify
+        h.next_phase();
+        h.verify(bob);
+
+        // Mint
+        h.next_phase();
+        uint256 round = h.verifyContract().currentRound() - 1;
+
+        // Claim
+        uint256 balanceBefore = IERC20(tokenAddress).balanceOf(bob.userAddress);
+        h.extension_claimReward(bob, extZero, round);
+        uint256 balanceAfter = IERC20(tokenAddress).balanceOf(bob.userAddress);
+
+        (
+            uint256 mintReward,
+            uint256 burnReward,
+            bool claimed
+        ) = extZero.rewardByAccount(round, bob.userAddress);
+        assertTrue(claimed);
+        assertGt(mintReward, 0, "Should have mint reward");
+        assertGt(balanceAfter, balanceBefore, "Balance should increase");
+
+        // With GOV_RATIO_MULTIPLIER=0, reward depends only on LP ratio and block ratio
+        // Bob is the only LP provider with ~100% block ratio
+        // -> most reward should be minted (mint > burn)
+        assertGt(
+            mintReward,
+            burnReward,
+            "With govRatioMultiplier=0, mint should > burn"
+        );
+    }
 }

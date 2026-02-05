@@ -179,4 +179,42 @@ contract GovVotesTest is Test {
             "GOV_RATIO_MULTIPLIER should be 2"
         );
     }
+
+    function test_govRatio_snapshotAfterClaim() public {
+        h.stake_liquidity(bob);
+        h.stake_token(bob);
+        h.vote(bob);
+
+        h.next_phase();
+        h.extension_join(bob, extension, 1e18);
+
+        h.next_phase();
+        h.verify(bob);
+
+        h.next_phase();
+        uint256 round = h.verifyContract().currentRound() - 1;
+
+        // Before claim: govRatio returns current ratio
+        (uint256 ratioBefore, bool claimedBefore) = extension.govRatio(
+            round,
+            bob.userAddress
+        );
+        assertFalse(claimedBefore, "Should not be claimed yet");
+        assertGt(ratioBefore, 0, "Should have gov ratio");
+
+        // Claim
+        h.extension_claimReward(bob, extension, round);
+
+        // After claim: govRatio returns stored snapshot
+        (uint256 ratioAfter, bool claimedAfter) = extension.govRatio(
+            round,
+            bob.userAddress
+        );
+        assertTrue(claimedAfter, "Should be claimed");
+        assertEq(
+            ratioAfter,
+            ratioBefore,
+            "Stored ratio should match pre-claim ratio"
+        );
+    }
 }
