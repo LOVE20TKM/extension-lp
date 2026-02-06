@@ -10,10 +10,17 @@ interface ILp is ILpErrors {
 
     function MIN_GOV_RATIO() external view returns (uint256);
 
-    function lastJoinedBlockByAccountByJoinedRound(
-        address account,
-        uint256 joinedRound
-    ) external view returns (uint256 lastJoinedBlock);
+    function deduction(
+        uint256 round,
+        address account
+    )
+        external
+        view
+        returns (
+            uint256 totalDeduction,
+            uint256[] memory joinBlocks,
+            uint256[] memory joinAmounts
+        );
 
     function govRatio(
         uint256 round,

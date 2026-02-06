@@ -25,9 +25,14 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
 
     ILOVE20Stake internal immutable _stake;
 
-    /// @dev account => joinedRound => last joined block in that round (0 means not joined in that round)
-    mapping(address => mapping(uint256 => uint256))
-        internal _lastJoinedBlockByAccountByJoinedRound;
+    /// @dev round => account => accumulated deduction for time-weighted LP calculation
+    mapping(uint256 => mapping(address => uint256)) internal _deduction;
+
+    /// @dev round => account => block numbers of each join in this round
+    mapping(uint256 => mapping(address => uint256[])) internal _joinBlocks;
+
+    /// @dev round => account => amounts of each join in this round
+    mapping(uint256 => mapping(address => uint256[])) internal _joinAmounts;
 
     /// @dev round => account => gov ratio at claim time
     mapping(uint256 => mapping(address => uint256)) internal _govRatio;
@@ -62,14 +67,28 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             }
         }
 
+        // Accumulate deduction: amount * elapsedBlocks / phaseBlocks
         uint256 currentRound = _join.currentRound();
-        if (isFirstJoin || currentRound == _joinedRoundByAccount[msg.sender]) {
-            _lastJoinedBlockByAccountByJoinedRound[msg.sender][
-                currentRound
-            ] = block.number;
-        }
+        uint256 phaseBlocks = _join.phaseBlocks();
+        uint256 roundStartBlock = _join.originBlocks() +
+            currentRound *
+            phaseBlocks;
+        uint256 elapsedBlocks = block.number - roundStartBlock;
+        _deduction[currentRound][msg.sender] +=
+            (amount * elapsedBlocks) /
+            phaseBlocks;
+        _joinBlocks[currentRound][msg.sender].push(block.number);
+        _joinAmounts[currentRound][msg.sender].push(amount);
 
         super.join(amount, verificationInfos);
+    }
+
+    function exit() public virtual override {
+        uint256 currentRound = _join.currentRound();
+        super.exit();
+        delete _deduction[currentRound][msg.sender];
+        delete _joinBlocks[currentRound][msg.sender];
+        delete _joinAmounts[currentRound][msg.sender];
     }
 
     function _calculateReward(
@@ -86,9 +105,7 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             return (0, 0);
         }
 
-        // prepare
         uint256 totalActionReward = reward(round);
-
         if (totalActionReward == 0) {
             return (0, 0);
         }
@@ -97,40 +114,28 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             round
         );
         uint256 totalJoined = _joinedAmountHistory.value(round);
-
         if (totalJoined == 0 || joinedAmount == 0) {
             return (0, 0);
         }
 
-        // calculate reward
+        // Theoretical reward based on raw LP ratio
         uint256 lpRatio = (joinedAmount * PRECISION) / totalJoined;
         uint256 theoreticalReward = (totalActionReward * lpRatio) / PRECISION;
 
-        // calculate block ratio only if joined in this round
-        uint256 blockRatio = PRECISION;
-        uint256 joinedBlock = _lastJoinedBlockByAccountByJoinedRound[account][
-            round
-        ];
-        if (joinedBlock != 0) {
-            uint256 phaseBlocks = _join.phaseBlocks();
-            uint256 roundEndBlock = _join.originBlocks() +
-                (round + 1) *
-                phaseBlocks -
-                1;
-            uint256 blocksInRound = roundEndBlock - joinedBlock + 1;
-            blockRatio = (blocksInRound * PRECISION) / phaseBlocks;
-        }
+        // Effective LP ratio after deduction
+        uint256 roundDeduction = _deduction[round][account];
+        uint256 effectiveAmount = joinedAmount > roundDeduction
+            ? joinedAmount - roundDeduction
+            : 0;
+        uint256 effectiveLpRatio = (effectiveAmount * PRECISION) / totalJoined;
 
         if (GOV_RATIO_MULTIPLIER == 0) {
-            uint256 adjustedTheoreticalReward = (theoreticalReward *
-                blockRatio) / PRECISION;
-            return (
-                adjustedTheoreticalReward,
-                theoreticalReward - adjustedTheoreticalReward
-            );
+            mintReward =
+                (totalActionReward * effectiveLpRatio) /
+                PRECISION;
+            return (mintReward, theoreticalReward - mintReward);
         }
 
-        // calculate burn reward
         uint256 totalGovVotes = _stake.govVotesNum(TOKEN_ADDRESS);
         if (totalGovVotes == 0) {
             return (0, theoreticalReward);
@@ -139,14 +144,11 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         uint256 govVotesRatio = (govVotes * PRECISION * GOV_RATIO_MULTIPLIER) /
             totalGovVotes;
 
-        uint256 effectiveRatio = lpRatio < govVotesRatio
-            ? lpRatio
+        uint256 cappedRatio = effectiveLpRatio < govVotesRatio
+            ? effectiveLpRatio
             : govVotesRatio;
-        uint256 adjustedEffectiveRatio = blockRatio == PRECISION
-            ? effectiveRatio
-            : (effectiveRatio * blockRatio) / PRECISION;
 
-        mintReward = (totalActionReward * adjustedEffectiveRatio) / PRECISION;
+        mintReward = (totalActionReward * cappedRatio) / PRECISION;
         burnReward = theoreticalReward - mintReward;
 
         return (mintReward, burnReward);
@@ -169,11 +171,19 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
         return 0;
     }
 
-    function lastJoinedBlockByAccountByJoinedRound(
-        address account,
-        uint256 joinedRound
-    ) external view returns (uint256 lastJoinedBlock) {
-        return _lastJoinedBlockByAccountByJoinedRound[account][joinedRound];
+    function deduction(
+        uint256 round,
+        address account
+    )
+        external
+        view
+        returns (uint256, uint256[] memory, uint256[] memory)
+    {
+        return (
+            _deduction[round][account],
+            _joinBlocks[round][account],
+            _joinAmounts[round][account]
+        );
     }
 
     /// @return Account's gov ratio (1e18): govValid / govTotal; 0 if govTotal==0

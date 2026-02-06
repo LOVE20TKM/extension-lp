@@ -1046,12 +1046,7 @@ contract ExtensionLpTest is Test {
 
         // Set rewards for round 1 and round 2
         mint.setActionReward(address(token), round1, ACTION_ID, 1000e18);
-        mint.setActionReward(
-            address(token),
-            round1 + 1,
-            ACTION_ID,
-            500e18
-        );
+        mint.setActionReward(address(token), round1 + 1, ACTION_ID, 500e18);
 
         // Advance verify to make both rounds claimable
         verify.setCurrentRound(round1 + 2);
@@ -1137,70 +1132,68 @@ contract ExtensionLpTest is Test {
     }
 
     // ============================================
-    // lastJoinedBlockByAccountByJoinedRound Tests
+    // deduction Tests
     // ============================================
 
-    function test_LastJoinedBlockByAccountByJoinedRound_FirstJoin() public {
-        // user1 joins at block 100 (from setUp vm.roll(100))
+    function test_DeductionByAccountByRound_ZeroAtRoundStart() public {
+        // user1 joins at block 100 (start of round 1), deduction should be 0
         vm.prank(user1);
         extension.join(50e18, new string[](0));
 
         uint256 round = join.currentRound();
-        assertEq(
-            extension.lastJoinedBlockByAccountByJoinedRound(user1, round),
-            100,
-            "Should record block 100 for first join"
-        );
+        (uint256 d, uint256[] memory blocks, uint256[] memory amounts) = extension.deduction(round, user1);
+        assertEq(d, 0, "Deduction should be 0 when joining at round start");
+        assertEq(blocks.length, 1, "Should have 1 join record");
+        assertEq(amounts.length, 1, "Should have 1 amount record");
+        assertEq(amounts[0], 50e18, "Amount should be 50e18");
     }
 
-    function test_LastJoinedBlockByAccountByJoinedRound_UpdatedOnSameRound()
-        public
-    {
+    function test_DeductionByAccountByRound_AccumulatesOnSameRound() public {
+        // First join at block 100 (round start): deduction = 50e18 * 0 / 100 = 0
         vm.prank(user1);
         extension.join(50e18, new string[](0));
 
+        // Second join at block 110: deduction += 50e18 * 10 / 100 = 5e18
         vm.roll(110);
         vm.prank(user1);
         extension.join(50e18, new string[](0));
 
         uint256 round = join.currentRound();
-        assertEq(
-            extension.lastJoinedBlockByAccountByJoinedRound(user1, round),
-            110,
-            "Should update to block 110 on second join"
-        );
+        (uint256 d, uint256[] memory blocks, uint256[] memory amounts) = extension.deduction(round, user1);
+        assertEq(d, 5e18, "Deduction should be 5e18 (50e18 * 10 / 100)");
+        assertEq(blocks.length, 2, "Should have 2 join records");
+        assertEq(amounts.length, 2, "Should have 2 amount records");
+        assertEq(blocks[0], 100, "First join at block 100");
+        assertEq(blocks[1], 110, "Second join at block 110");
+        assertEq(amounts[0], 50e18, "First amount 50e18");
+        assertEq(amounts[1], 50e18, "Second amount 50e18");
     }
 
-    function test_LastJoinedBlockByAccountByJoinedRound_NotUpdatedAcrossRounds()
-        public
-    {
-        // user1 joins in round 1 at block 100
+    function test_DeductionByAccountByRound_AcrossRounds() public {
+        // Join at block 100 in round 1: deduction = 0
         vm.prank(user1);
         extension.join(50e18, new string[](0));
 
-        uint256 round1 = join.currentRound(); // 1
+        uint256 round1 = join.currentRound();
 
-        // Advance to round 2
+        // Advance to round 2, join at block 250 (50 blocks elapsed in round 2)
         join.setCurrentRound(2);
         vote.setVotedActionIds(address(token), 2, ACTION_ID);
-
-        // Add more LP in round 2 (not first join, and currentRound != joinedRound)
-        vm.roll(200);
+        vm.roll(250);
         vm.prank(user1);
         extension.join(50e18, new string[](0));
 
-        // Round 1 block should still be 100
-        assertEq(
-            extension.lastJoinedBlockByAccountByJoinedRound(user1, round1),
-            100,
-            "Round 1 join block should still be 100"
-        );
+        // Round 1 deduction should still be 0
+        (uint256 d1, uint256[] memory blocks1, uint256[] memory amounts1) = extension.deduction(round1, user1);
+        assertEq(d1, 0, "Round 1 deduction should still be 0");
+        assertEq(blocks1.length, 1, "Round 1 should have 1 join record");
+        assertEq(amounts1[0], 50e18, "Round 1 amount should be 50e18");
 
-        // Round 2 should be 0 (not updated since not first join and not joinedRound)
-        assertEq(
-            extension.lastJoinedBlockByAccountByJoinedRound(user1, 2),
-            0,
-            "Round 2 join block should be 0 (not updated)"
-        );
+        // Round 2 deduction: 50e18 * 50 / 100 = 25e18
+        (uint256 d2, uint256[] memory blocks2, uint256[] memory amounts2) = extension.deduction(2, user1);
+        assertEq(d2, 25e18, "Round 2 deduction should be 25e18 (50e18 * 50 / 100)");
+        assertEq(blocks2.length, 1, "Round 2 should have 1 join record");
+        assertEq(blocks2[0], 250, "Round 2 join at block 250");
+        assertEq(amounts2[0], 50e18, "Round 2 amount should be 50e18");
     }
 }

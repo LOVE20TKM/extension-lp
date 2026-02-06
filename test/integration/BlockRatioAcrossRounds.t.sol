@@ -349,10 +349,10 @@ contract BlockRatioAcrossRoundsTest is Test {
         );
     }
 
-    /// @notice Test: add LP in next round - should NOT update joinedBlock
-    /// User joins in round N, then adds more LP in round N+1
-    /// Block ratio in round N+1 should still be 100% (joinedBlock not updated)
-    function test_addLpInNextRound_blockRatioNotUpdated() public {
+    /// @notice Test: add LP late in next round - deduction applies to newly added LP
+    /// User joins in round N, then adds more LP late in round N+1
+    /// Continued LP has no deduction; newly added LP has deduction proportional to elapsed blocks
+    function test_addLpInNextRound_deductionApplied() public {
         // Vote for round N
         h.stake_liquidity(bob);
         h.stake_token(bob);
@@ -372,13 +372,8 @@ contract BlockRatioAcrossRoundsTest is Test {
         h.extension_claimReward(bob, extension, roundN);
 
         // === Round N+1: bob adds more LP late in the join phase ===
-        // Move to vote phase of next round
         h.next_phase();
-
-        // Resubmit action for round N+1
         h.resubmit_action(bob, address(extension));
-
-        // Vote for round N+1
         h.vote(bob);
 
         // Join phase for next round
@@ -389,9 +384,12 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Advance to late in join phase
         vm.roll(block.number + 50);
 
-        // Add more LP (this should NOT update _lastJoinedBlockByAccountByJoinedRound)
-        // Because currentRound != _joinedRoundByAccount[bob] (LP was continued from roundN)
+        // Add more LP late - deduction accumulates for the newly added portion
         h.extension_join(bob, extension, 5e17);
+
+        // Verify deduction is non-zero for round N+1 (newly added LP has time penalty)
+        (uint256 ded, , ) = extension.deduction(roundN1, bob.userAddress);
+        assertGt(ded, 0, "Deduction should be > 0 for late addition");
 
         // Verify next round
         h.next_phase();
@@ -400,9 +398,6 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Mint next round
         h.next_phase();
 
-        // Get reward - should have 100% block ratio despite adding LP late
-        // Because _lastJoinedBlockByAccountByJoinedRound[bob][roundN1] was NOT updated (stays 0)
-        // since the user's joinedRound is still roundN, not roundN1
         (uint256 mintReward, uint256 burnReward, ) = extension.rewardByAccount(
             roundN1,
             bob.userAddress
@@ -410,15 +405,18 @@ contract BlockRatioAcrossRoundsTest is Test {
         uint256 totalReward = mintReward + burnReward;
         assertGt(totalReward, 0, "Should have reward");
 
+        // burnReward should be > 0 because deduction reduces effective LP
+        assertGt(burnReward, 0, "Burn reward should be > 0 due to deduction");
+
         // Claim
         h.extension_claimReward(bob, extension, roundN1);
     }
 
     /// @notice Test: compare rewards - continued LP vs new LP in same round
-    /// User A: continues LP from previous round (100% block ratio)
-    /// User B: joins late in current round (partial block ratio)
+    /// User A: continues LP from previous round (zero deduction)
+    /// User B: joins late in current round (has deduction)
     /// User A should get more reward with same LP amount
-    function test_continuedLpVsNewLp_blockRatioComparison() public {
+    function test_continuedLpVsNewLp_deductionComparison() public {
         // Setup alice
         h.stake_liquidity(alice);
         h.stake_token(alice);
@@ -487,8 +485,8 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Note: Alice may have very low or zero mint reward due to low gov votes
 
         // Bob should have higher mint reward:
-        // - Bob has 100% block ratio (continued LP, joinedBlock == 0 for this round)
-        // - Alice has partial block ratio (first join late, joinedBlock != 0)
+        // - Bob has zero deduction (continued LP, no join in this round)
+        // - Alice has deduction (first join late, effective LP is reduced)
         // Also, Bob has much higher gov votes than Alice
         assertGt(
             bobMintReward,
@@ -497,10 +495,10 @@ contract BlockRatioAcrossRoundsTest is Test {
         );
     }
 
-    /// @notice Test: exit and rejoin in next round - should update joinedBlock
-    /// User joins in round N, exits, then rejoins in round N+1
-    /// This is a "first join" again, so joinedBlock SHOULD be updated
-    function test_exitAndRejoinNextRound_updatesJoinedBlock() public {
+    /// @notice Test: exit and rejoin in next round - deduction applies to all LP
+    /// User joins in round N, exits, then rejoins late in round N+1
+    /// All LP is new (no continued amount), so deduction applies to entire amount
+    function test_exitAndRejoinNextRound_fullDeduction() public {
         // Vote for round N
         h.stake_liquidity(bob);
         h.stake_token(bob);
@@ -538,8 +536,12 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Advance to late in join phase
         vm.roll(block.number + 50);
 
-        // Rejoin late - this IS a first join (after exit), so joinedBlock SHOULD be updated
+        // Rejoin late - all LP is new (after exit), so deduction applies to full amount
         h.extension_join(bob, extension, 1e18);
+
+        // Verify deduction is > 0 (joined late, all LP is new)
+        (uint256 ded, , ) = extension.deduction(roundN1, bob.userAddress);
+        assertGt(ded, 0, "Deduction should be > 0 for late rejoin");
 
         // Verify round N+1
         h.next_phase();
@@ -548,16 +550,15 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Mint round N+1
         h.next_phase();
 
-        // Get reward - should have partial block ratio (joined late after exit)
+        // Get reward - should have reduced effective LP (deduction applied)
         (uint256 mintReward, uint256 burnReward, ) = extension.rewardByAccount(
             roundN1,
             bob.userAddress
         );
         uint256 totalReward = mintReward + burnReward;
         assertGt(totalReward, 0, "Should have reward");
+        assertGt(burnReward, 0, "Burn reward should be > 0 due to deduction");
 
-        // The reward should be less than if he had continued LP (but we can't directly compare here)
-        // At least verify claiming works
         h.extension_claimReward(bob, extension, roundN1);
         (, , bool claimed) = extension.rewardByAccount(
             roundN1,
