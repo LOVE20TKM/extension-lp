@@ -959,13 +959,13 @@ contract ExtensionLpTest is Test {
         (uint256 mintReward, uint256 burnReward, bool claimed) = extZero
             .rewardByAccount(round, user1);
 
-        // roundEndBlock = 0 + (1+1)*100 - 1 = 199
-        // blocksInRound = 199 - 150 + 1 = 50
-        // blockRatio = 50 * 1e18 / 100 = 5e17 (50%)
-        // mintReward = 1000e18 * 5e17 / 1e18 = 500e18
-        // burnReward = 1000e18 - 500e18 = 500e18
-        assertEq(mintReward, 500e18, "Partial block ratio mint");
-        assertEq(burnReward, 500e18, "Partial block ratio burn");
+        // deduction = 100e18 * 50 / 100 = 50e18
+        // effectiveAmount = 100e18 - 50e18 = 50e18
+        // totalEffective = 100e18 - 50e18 = 50e18 (single user, same deduction)
+        // effectiveLpRatio = 50e18 / 50e18 = 1e18 (100%)
+        // GOV_RATIO_MULTIPLIER == 0 -> mintReward = 1000e18, burnReward = 0
+        assertEq(mintReward, 1000e18, "Partial block ratio mint");
+        assertEq(burnReward, 0, "Partial block ratio burn");
         assertFalse(claimed);
     }
 
@@ -1195,5 +1195,114 @@ contract ExtensionLpTest is Test {
         assertEq(blocks2.length, 1, "Round 2 should have 1 join record");
         assertEq(blocks2[0], 250, "Round 2 join at block 250");
         assertEq(amounts2[0], 50e18, "Round 2 amount should be 50e18");
+    }
+
+    // ============================================
+    // totalDeduction Tests
+    // ============================================
+
+    function test_TotalDeduction_ZeroAtRoundStart() public {
+        vm.prank(user1);
+        extension.join(50e18, new string[](0));
+
+        uint256 round = join.currentRound();
+        assertEq(extension.totalDeduction(round), 0, "totalDeduction should be 0 when joining at round start");
+    }
+
+    function test_TotalDeduction_AccumulatesAcrossUsers() public {
+        // user1 joins at block 100 (round start): deduction = 0
+        vm.prank(user1);
+        extension.join(50e18, new string[](0));
+
+        // user2 joins at block 110: deduction = 200e18 * 10 / 100 = 20e18
+        vm.roll(110);
+        vm.prank(user2);
+        extension.join(200e18, new string[](0));
+
+        uint256 round = join.currentRound();
+        // totalDeduction = 0 + 20e18 = 20e18
+        assertEq(extension.totalDeduction(round), 20e18, "totalDeduction should be sum of all account deductions");
+
+        // user1 joins again at block 120: deduction += 50e18 * 20 / 100 = 10e18
+        vm.roll(120);
+        vm.prank(user1);
+        extension.join(50e18, new string[](0));
+
+        // totalDeduction = 20e18 + 10e18 = 30e18
+        assertEq(extension.totalDeduction(round), 30e18, "totalDeduction should accumulate");
+    }
+
+    function test_TotalDeduction_DecreasesOnExit() public {
+        // user1 joins at block 100 (round start): deduction = 0
+        vm.prank(user1);
+        extension.join(50e18, new string[](0));
+
+        // user2 joins at block 110: deduction = 100e18 * 10 / 100 = 10e18
+        vm.roll(110);
+        vm.prank(user2);
+        extension.join(100e18, new string[](0));
+
+        uint256 round = join.currentRound();
+        assertEq(extension.totalDeduction(round), 10e18, "totalDeduction before exit");
+
+        // user2 exits (need to wait 1 block)
+        vm.roll(112);
+        vm.prank(user2);
+        extension.exit();
+
+        // totalDeduction should decrease by user2's deduction (10e18)
+        assertEq(extension.totalDeduction(round), 0, "totalDeduction after exit should be 0");
+    }
+
+    // ============================================
+    // Reward with totalEffective denominator Tests
+    // ============================================
+
+    function test_RewardCalculation_TwoUsers_PartialBlockRatio_GovMultZero()
+        public
+    {
+        uint256 newActionId = 2;
+        ExtensionLp extZero = _createExtensionWithParams(0, 0, newActionId);
+
+        // user1 joins at block 100 (round start): deduction = 0
+        vm.prank(user1);
+        joinToken.approve(address(extZero), type(uint256).max);
+        vm.prank(user1);
+        extZero.join(100e18, new string[](0));
+
+        // user2 joins at block 150: deduction = 100e18 * 50 / 100 = 50e18
+        vm.roll(150);
+        vm.prank(user2);
+        joinToken.approve(address(extZero), type(uint256).max);
+        vm.prank(user2);
+        extZero.join(100e18, new string[](0));
+
+        uint256 round = verify.currentRound();
+        verify.setCurrentRound(round + 1);
+
+        uint256 totalReward = 1000e18;
+        mint.setActionReward(address(token), round, newActionId, totalReward);
+
+        // totalJoined = 200e18, totalDeduction = 50e18, totalEffective = 150e18
+        // user1: effectiveAmount = 100e18, effectiveLpRatio = 100e18*1e18/150e18
+        // user2: effectiveAmount = 50e18, effectiveLpRatio = 50e18*1e18/150e18
+        // Sum of ratios = 150e18/150e18 = 1 (no overflow)
+
+        (uint256 mintReward1, uint256 burnReward1, ) = extZero
+            .rewardByAccount(round, user1);
+        (uint256 mintReward2, uint256 burnReward2, ) = extZero
+            .rewardByAccount(round, user2);
+
+        // Pre-compute following contract's integer arithmetic (two-step division)
+        uint256 totalEffective = 150e18;
+        uint256 ratio1 = (uint256(100e18) * 1e18) / totalEffective;
+        uint256 expectedMint1 = (totalReward * ratio1) / 1e18;
+        uint256 ratio2 = (uint256(50e18) * 1e18) / totalEffective;
+        uint256 expectedMint2 = (totalReward * ratio2) / 1e18;
+
+        assertEq(mintReward1, expectedMint1, "User1 mint with totalEffective denominator");
+        assertEq(burnReward1, 0, "User1 burn should be 0 with govMultZero");
+        assertEq(mintReward2, expectedMint2, "User2 mint with totalEffective denominator");
+        assertEq(burnReward2, 0, "User2 burn should be 0 with govMultZero");
     }
 }

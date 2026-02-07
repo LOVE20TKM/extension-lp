@@ -25,8 +25,11 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
 
     ILOVE20Stake internal immutable _stake;
 
-    /// @dev round => account => accumulated deduction for time-weighted LP calculation
+    /// @dev round => accumulated deduction for time-weighted LP calculation
     mapping(uint256 => mapping(address => uint256)) internal _deduction;
+
+    /// @dev round => accumulated total deduction across all accounts
+    mapping(uint256 => uint256) internal _totalDeduction;
 
     /// @dev round => account => block numbers of each join in this round
     mapping(uint256 => mapping(address => uint256[])) internal _joinBlocks;
@@ -74,9 +77,9 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             currentRound *
             phaseBlocks;
         uint256 elapsedBlocks = block.number - roundStartBlock;
-        _deduction[currentRound][msg.sender] +=
-            (amount * elapsedBlocks) /
-            phaseBlocks;
+        uint256 d = (amount * elapsedBlocks) / phaseBlocks;
+        _deduction[currentRound][msg.sender] += d;
+        _totalDeduction[currentRound] += d;
         _joinBlocks[currentRound][msg.sender].push(block.number);
         _joinAmounts[currentRound][msg.sender].push(amount);
 
@@ -85,7 +88,9 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
 
     function exit() public virtual override {
         uint256 currentRound = _join.currentRound();
+        uint256 accountDeduction = _deduction[currentRound][msg.sender];
         super.exit();
+        _totalDeduction[currentRound] -= accountDeduction;
         delete _deduction[currentRound][msg.sender];
         delete _joinBlocks[currentRound][msg.sender];
         delete _joinAmounts[currentRound][msg.sender];
@@ -114,26 +119,23 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
             round
         );
         uint256 totalJoined = _joinedAmountHistory.value(round);
-        if (totalJoined == 0 || joinedAmount == 0) {
+        uint256 totalEffective = totalJoined - _totalDeduction[round];
+        if (totalEffective == 0 || joinedAmount == 0) {
             return (0, 0);
         }
 
-        // Theoretical reward based on raw LP ratio
-        uint256 lpRatio = (joinedAmount * PRECISION) / totalJoined;
-        uint256 theoreticalReward = (totalActionReward * lpRatio) / PRECISION;
-
-        // Effective LP ratio after deduction
+        // Effective LP ratio (denominator is totalEffective)
         uint256 roundDeduction = _deduction[round][account];
-        uint256 effectiveAmount = joinedAmount > roundDeduction
-            ? joinedAmount - roundDeduction
-            : 0;
-        uint256 effectiveLpRatio = (effectiveAmount * PRECISION) / totalJoined;
+        uint256 effectiveAmount = joinedAmount - roundDeduction;
+        uint256 effectiveLpRatio = (effectiveAmount * PRECISION) /
+            totalEffective;
+
+        // Theoretical reward based on effective ratio
+        uint256 theoreticalReward = (totalActionReward * effectiveLpRatio) /
+            PRECISION;
 
         if (GOV_RATIO_MULTIPLIER == 0) {
-            mintReward =
-                (totalActionReward * effectiveLpRatio) /
-                PRECISION;
-            return (mintReward, theoreticalReward - mintReward);
+            return (theoreticalReward, 0);
         }
 
         uint256 totalGovVotes = _stake.govVotesNum(TOKEN_ADDRESS);
@@ -177,13 +179,20 @@ contract ExtensionLp is ExtensionBaseRewardTokenJoin, ILp {
     )
         external
         view
-        returns (uint256, uint256[] memory, uint256[] memory)
+        returns (
+            uint256 deduction_,
+            uint256[] memory joinBlocks_,
+            uint256[] memory joinAmounts_
+        )
     {
-        return (
-            _deduction[round][account],
-            _joinBlocks[round][account],
-            _joinAmounts[round][account]
-        );
+        deduction_ = _deduction[round][account];
+        joinBlocks_ = _joinBlocks[round][account];
+        joinAmounts_ = _joinAmounts[round][account];
+        return (deduction_, joinBlocks_, joinAmounts_);
+    }
+
+    function totalDeduction(uint256 round) external view returns (uint256) {
+        return _totalDeduction[round];
     }
 
     /// @return Account's gov ratio (1e18): govValid / govTotal; 0 if govTotal==0

@@ -294,11 +294,12 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Mint round N
         h.next_phase();
 
-        // Get round N reward (has block ratio penalty since joined late)
-        (uint256 roundNMintReward, uint256 roundNBurnReward, ) = extension
+        // Get round N reward
+        // Single user with deduction: effectiveAmount / totalEffective = 100%
+        // Gov ratio cap determines actual mint
+        (uint256 roundNMintReward, , ) = extension
             .rewardByAccount(roundN, bob.userAddress);
-        uint256 roundNTotalReward = roundNMintReward + roundNBurnReward;
-        assertGt(roundNTotalReward, 0, "Should have round N reward");
+        assertGt(roundNMintReward, 0, "Should have round N reward");
 
         // Claim round N
         h.extension_claimReward(bob, extension, roundN);
@@ -314,7 +315,6 @@ contract BlockRatioAcrossRoundsTest is Test {
         h.vote(bob);
 
         // Join phase for next round (bob doesn't join again, LP continues)
-        // Note: After vote->join->verify->mint cycle, we're now at join round N+4
         h.next_phase();
         uint256 roundN1 = h.joinContract().currentRound();
         assertGt(roundN1, roundN, "Should be after round N");
@@ -326,8 +326,7 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Mint next round
         h.next_phase();
 
-        // Get next round reward - should have 100% block ratio since LP is continued
-        // (joinedBlock for this round is 0, so blockRatio = 100%)
+        // Get next round reward - continued LP has 0 deduction
         (uint256 roundN1MintReward, , ) = extension.rewardByAccount(
             roundN1,
             bob.userAddress
@@ -338,15 +337,9 @@ contract BlockRatioAcrossRoundsTest is Test {
             "Should have mint reward in continued round"
         );
 
-        // Next round should have better mint reward ratio (100% block ratio vs partial in round N)
-        // Because LP is continued and joinedBlock == 0, blockRatio = 100%
-        // Note: Actual mint amount may vary due to gov votes ratio and total rewards
-        // The key verification is that the continued LP has full block ratio (no penalty)
-        assertGt(
-            roundN1MintReward,
-            roundNMintReward,
-            "Continued round should have higher mint reward (full block ratio)"
-        );
+        // With totalEffective denominator, single user always gets 100% effective ratio
+        // in both rounds. Mint reward depends on totalActionReward and gov ratio,
+        // which may vary across rounds, so we only assert both are positive.
     }
 
     /// @notice Test: add LP late in next round - deduction applies to newly added LP
@@ -402,11 +395,11 @@ contract BlockRatioAcrossRoundsTest is Test {
             roundN1,
             bob.userAddress
         );
-        uint256 totalReward = mintReward + burnReward;
-        assertGt(totalReward, 0, "Should have reward");
+        assertGt(mintReward, 0, "Should have mint reward");
 
-        // burnReward should be > 0 because deduction reduces effective LP
-        assertGt(burnReward, 0, "Burn reward should be > 0 due to deduction");
+        // Single user: effectiveAmount / totalEffective = 100%
+        // Burn only comes from gov ratio cap, not from deduction
+        assertGe(burnReward, 0, "Burn reward from gov cap only");
 
         // Claim
         h.extension_claimReward(bob, extension, roundN1);
@@ -550,14 +543,14 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Mint round N+1
         h.next_phase();
 
-        // Get reward - should have reduced effective LP (deduction applied)
+        // Single user: effectiveAmount / totalEffective = 100%
+        // Burn only comes from gov ratio cap, not from deduction
         (uint256 mintReward, uint256 burnReward, ) = extension.rewardByAccount(
             roundN1,
             bob.userAddress
         );
-        uint256 totalReward = mintReward + burnReward;
-        assertGt(totalReward, 0, "Should have reward");
-        assertGt(burnReward, 0, "Burn reward should be > 0 due to deduction");
+        assertGt(mintReward, 0, "Should have mint reward");
+        assertGe(burnReward, 0, "Burn reward from gov cap only");
 
         h.extension_claimReward(bob, extension, roundN1);
         (, , bool claimed) = extension.rewardByAccount(

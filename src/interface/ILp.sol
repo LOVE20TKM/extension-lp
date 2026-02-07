@@ -17,10 +17,12 @@ interface ILp is ILpErrors {
         external
         view
         returns (
-            uint256 totalDeduction,
+            uint256 deduction,
             uint256[] memory joinBlocks,
             uint256[] memory joinAmounts
         );
+
+    function totalDeduction(uint256 round) external view returns (uint256);
 
     function govRatio(
         uint256 round,
