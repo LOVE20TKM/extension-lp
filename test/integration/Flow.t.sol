@@ -176,7 +176,7 @@ contract FlowTest is Test {
         (
             uint256[] memory claimedRounds,
             uint256[] memory mintRewards,
-            uint256[] memory burnRewards
+
         ) = extension.claimRewards(rounds);
 
         uint256 balanceAfter = IERC20(tokenAddress).balanceOf(bob.userAddress);

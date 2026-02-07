@@ -297,8 +297,10 @@ contract BlockRatioAcrossRoundsTest is Test {
         // Get round N reward
         // Single user with deduction: effectiveAmount / totalEffective = 100%
         // Gov ratio cap determines actual mint
-        (uint256 roundNMintReward, , ) = extension
-            .rewardByAccount(roundN, bob.userAddress);
+        (uint256 roundNMintReward, , ) = extension.rewardByAccount(
+            roundN,
+            bob.userAddress
+        );
         assertGt(roundNMintReward, 0, "Should have round N reward");
 
         // Claim round N

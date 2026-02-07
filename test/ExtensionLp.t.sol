@@ -1141,7 +1141,11 @@ contract ExtensionLpTest is Test {
         extension.join(50e18, new string[](0));
 
         uint256 round = join.currentRound();
-        (uint256 d, uint256[] memory blocks, uint256[] memory amounts) = extension.deduction(round, user1);
+        (
+            uint256 d,
+            uint256[] memory blocks,
+            uint256[] memory amounts
+        ) = extension.deduction(round, user1);
         assertEq(d, 0, "Deduction should be 0 when joining at round start");
         assertEq(blocks.length, 1, "Should have 1 join record");
         assertEq(amounts.length, 1, "Should have 1 amount record");
@@ -1159,7 +1163,11 @@ contract ExtensionLpTest is Test {
         extension.join(50e18, new string[](0));
 
         uint256 round = join.currentRound();
-        (uint256 d, uint256[] memory blocks, uint256[] memory amounts) = extension.deduction(round, user1);
+        (
+            uint256 d,
+            uint256[] memory blocks,
+            uint256[] memory amounts
+        ) = extension.deduction(round, user1);
         assertEq(d, 5e18, "Deduction should be 5e18 (50e18 * 10 / 100)");
         assertEq(blocks.length, 2, "Should have 2 join records");
         assertEq(amounts.length, 2, "Should have 2 amount records");
@@ -1184,14 +1192,26 @@ contract ExtensionLpTest is Test {
         extension.join(50e18, new string[](0));
 
         // Round 1 deduction should still be 0
-        (uint256 d1, uint256[] memory blocks1, uint256[] memory amounts1) = extension.deduction(round1, user1);
+        (
+            uint256 d1,
+            uint256[] memory blocks1,
+            uint256[] memory amounts1
+        ) = extension.deduction(round1, user1);
         assertEq(d1, 0, "Round 1 deduction should still be 0");
         assertEq(blocks1.length, 1, "Round 1 should have 1 join record");
         assertEq(amounts1[0], 50e18, "Round 1 amount should be 50e18");
 
         // Round 2 deduction: 50e18 * 50 / 100 = 25e18
-        (uint256 d2, uint256[] memory blocks2, uint256[] memory amounts2) = extension.deduction(2, user1);
-        assertEq(d2, 25e18, "Round 2 deduction should be 25e18 (50e18 * 50 / 100)");
+        (
+            uint256 d2,
+            uint256[] memory blocks2,
+            uint256[] memory amounts2
+        ) = extension.deduction(2, user1);
+        assertEq(
+            d2,
+            25e18,
+            "Round 2 deduction should be 25e18 (50e18 * 50 / 100)"
+        );
         assertEq(blocks2.length, 1, "Round 2 should have 1 join record");
         assertEq(blocks2[0], 250, "Round 2 join at block 250");
         assertEq(amounts2[0], 50e18, "Round 2 amount should be 50e18");
@@ -1206,7 +1226,11 @@ contract ExtensionLpTest is Test {
         extension.join(50e18, new string[](0));
 
         uint256 round = join.currentRound();
-        assertEq(extension.totalDeduction(round), 0, "totalDeduction should be 0 when joining at round start");
+        assertEq(
+            extension.totalDeduction(round),
+            0,
+            "totalDeduction should be 0 when joining at round start"
+        );
     }
 
     function test_TotalDeduction_AccumulatesAcrossUsers() public {
@@ -1221,7 +1245,11 @@ contract ExtensionLpTest is Test {
 
         uint256 round = join.currentRound();
         // totalDeduction = 0 + 20e18 = 20e18
-        assertEq(extension.totalDeduction(round), 20e18, "totalDeduction should be sum of all account deductions");
+        assertEq(
+            extension.totalDeduction(round),
+            20e18,
+            "totalDeduction should be sum of all account deductions"
+        );
 
         // user1 joins again at block 120: deduction += 50e18 * 20 / 100 = 10e18
         vm.roll(120);
@@ -1229,7 +1257,11 @@ contract ExtensionLpTest is Test {
         extension.join(50e18, new string[](0));
 
         // totalDeduction = 20e18 + 10e18 = 30e18
-        assertEq(extension.totalDeduction(round), 30e18, "totalDeduction should accumulate");
+        assertEq(
+            extension.totalDeduction(round),
+            30e18,
+            "totalDeduction should accumulate"
+        );
     }
 
     function test_TotalDeduction_DecreasesOnExit() public {
@@ -1243,7 +1275,11 @@ contract ExtensionLpTest is Test {
         extension.join(100e18, new string[](0));
 
         uint256 round = join.currentRound();
-        assertEq(extension.totalDeduction(round), 10e18, "totalDeduction before exit");
+        assertEq(
+            extension.totalDeduction(round),
+            10e18,
+            "totalDeduction before exit"
+        );
 
         // user2 exits (need to wait 1 block)
         vm.roll(112);
@@ -1251,7 +1287,11 @@ contract ExtensionLpTest is Test {
         extension.exit();
 
         // totalDeduction should decrease by user2's deduction (10e18)
-        assertEq(extension.totalDeduction(round), 0, "totalDeduction after exit should be 0");
+        assertEq(
+            extension.totalDeduction(round),
+            0,
+            "totalDeduction after exit should be 0"
+        );
     }
 
     // ============================================
@@ -1288,10 +1328,14 @@ contract ExtensionLpTest is Test {
         // user2: effectiveAmount = 50e18, effectiveLpRatio = 50e18*1e18/150e18
         // Sum of ratios = 150e18/150e18 = 1 (no overflow)
 
-        (uint256 mintReward1, uint256 burnReward1, ) = extZero
-            .rewardByAccount(round, user1);
-        (uint256 mintReward2, uint256 burnReward2, ) = extZero
-            .rewardByAccount(round, user2);
+        (uint256 mintReward1, uint256 burnReward1, ) = extZero.rewardByAccount(
+            round,
+            user1
+        );
+        (uint256 mintReward2, uint256 burnReward2, ) = extZero.rewardByAccount(
+            round,
+            user2
+        );
 
         // Pre-compute following contract's integer arithmetic (two-step division)
         uint256 totalEffective = 150e18;
@@ -1300,9 +1344,17 @@ contract ExtensionLpTest is Test {
         uint256 ratio2 = (uint256(50e18) * 1e18) / totalEffective;
         uint256 expectedMint2 = (totalReward * ratio2) / 1e18;
 
-        assertEq(mintReward1, expectedMint1, "User1 mint with totalEffective denominator");
+        assertEq(
+            mintReward1,
+            expectedMint1,
+            "User1 mint with totalEffective denominator"
+        );
         assertEq(burnReward1, 0, "User1 burn should be 0 with govMultZero");
-        assertEq(mintReward2, expectedMint2, "User2 mint with totalEffective denominator");
+        assertEq(
+            mintReward2,
+            expectedMint2,
+            "User2 mint with totalEffective denominator"
+        );
         assertEq(burnReward2, 0, "User2 burn should be 0 with govMultZero");
     }
 }
