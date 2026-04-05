@@ -2,6 +2,13 @@
 
 一键部署和验证 ExtensionLpFactory 合约的脚本集合。
 
+## V1 / V2 区别
+
+- V1 合约为 `ExtensionLpFactory`，校验规则是：`joinLpTokenAddress` 必须是已知 `UniswapV2Factory` 创建的 LP，且该 LP 必须包含当前行动所在代币。
+- V2 合约为 `ExtensionLpFactoryV2`，校验规则是：`joinLpTokenAddress` 必须是已知 `UniswapV2Factory` 创建的 LP，但不再要求该 LP 包含当前行动所在代币。
+- V1 与 V2 需要分别部署在不同 factory 地址上；V2 不是对已部署 V1 的原地升级。
+- V1 脚本继续保留给旧版部署使用，V2 脚本统一使用 `v2_` 前缀。
+
 ## 📁 脚本说明
 
 ### 00_init.sh

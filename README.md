@@ -4,6 +4,19 @@
 
 此扩展协议基于 LOVE20 扩展协议标准，扩展行动参与机制，允许以 LP 参与行动并获得铸币激励。
 
+### 0.1 V1 与 V2 的区别
+
+当前 LP 扩展工厂分为两个版本：
+
+- `ExtensionLpFactory`（V1）：要求 `joinLpTokenAddress` 必须是已知 `UniswapV2Factory` 创建的 LP 代币，并且该 LP 必须包含当前行动所在代币。
+- `ExtensionLpFactoryV2`（V2）：要求 `joinLpTokenAddress` 必须是已知 `UniswapV2Factory` 创建的 LP 代币，但不再要求该 LP 包含当前行动所在代币。
+
+因此：
+
+- V1 更适合“LP 交易对中必须显式包含当前行动代币”的旧规则场景。
+- V2 更适合“只要是系统认可的 Uniswap V2 LP 就可以发起 LP 行动”的新规则场景。
+- V1 与 V2 是两个独立 factory 合约，链上已部署的 V1 不会被 V2 覆盖。
+
 ## 1. 核心优势
 
 ### 1.1 公平分配
@@ -27,6 +40,11 @@
 ### 2.2 LP 代币地址
 
 LP 代币合约地址。
+
+不同 factory 版本对该地址的校验规则不同：
+
+- V1：LP 必须来自已知 `UniswapV2Factory`，且必须包含当前行动所在代币。
+- V2：LP 必须来自已知 `UniswapV2Factory`，但不要求包含当前行动所在代币。
 
 ### 2.3 治理票占比倍数
 
