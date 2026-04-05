@@ -24,6 +24,17 @@
 3. 验证合约（仅 thinkium70001 网络）
 4. 运行部署检查
 
+### v2_one_click_deploy.sh ⭐
+
+**V2 一键部署主脚本**
+
+自动完成以下步骤：
+
+1. 初始化环境
+2. 部署 ExtensionLpFactoryV2 合约
+3. 验证 V2 合约（仅 thinkium70001 网络）
+4. 运行 V2 部署检查
+
 ### 03_verify.sh
 
 **合约验证脚本**
@@ -32,11 +43,27 @@
 - 仅适用于 thinkium70001 系列网络
 - 其他网络会自动跳过
 
+### v2_03_verify.sh
+
+**V2 合约验证脚本**
+
+- 在区块链浏览器上验证 `ExtensionLpFactoryV2`
+- 仅适用于 thinkium70001 系列网络
+- 其他网络会自动跳过
+
 ### 99_check.sh
 
 **部署验证脚本**
 
 检查 ExtensionLpFactory 合约的参数是否正确：
+
+- center address 是否正确设置
+
+### v2_99_check.sh
+
+**V2 部署验证脚本**
+
+检查 `ExtensionLpFactoryV2` 合约的参数是否正确：
 
 - center address 是否正确设置
 
@@ -62,6 +89,21 @@ source one_click_deploy.sh thinkium70001_public
 source one_click_deploy.sh thinkium70001_public_test
 ```
 
+### 方式 1.1：V2 一键部署
+
+```bash
+cd script/deploy
+source v2_one_click_deploy.sh <network>
+```
+
+示例：
+
+```bash
+source v2_one_click_deploy.sh anvil
+source v2_one_click_deploy.sh thinkium70001_public
+source v2_one_click_deploy.sh thinkium70001_public_test
+```
+
 ### 方式 2：分步部署
 
 ```bash
@@ -81,6 +123,27 @@ source 03_verify.sh
 
 # Step 5: 检查部署
 source 99_check.sh
+```
+
+### 方式 3：V2 分步部署
+
+```bash
+cd script/deploy
+
+# Step 1: 初始化环境
+source 00_init.sh <network>
+
+# Step 2: 部署 V2 合约
+source v2_01_deploy_extension_lp_factory.sh
+
+# Step 3: 加载部署地址
+source $network_dir/address.extension.lp.v2.params
+
+# Step 4: 验证合约（可选，仅 thinkium 网络）
+source v2_03_verify.sh
+
+# Step 5: 检查部署
+source v2_99_check.sh
 ```
 
 ## 📋 前置条件
@@ -109,6 +172,18 @@ script/network/<network>/address.extension.lp.params
 
 ```bash
 lpFactoryAddress=0x...
+```
+
+V2 部署成功后，合约地址会写入：
+
+```
+script/network/<network>/address.extension.lp.v2.params
+```
+
+内容格式：
+
+```bash
+lpFactoryV2Address=0x...
 ```
 
 ## 🔍 查看可用网络
@@ -193,6 +268,8 @@ Error: centerAddress not found
 ## 📚 相关文件
 
 - 部署脚本：`script/DeployExtensionLpFactory.s.sol`
+- V2 部署脚本：`script/DeployExtensionLpFactoryV2.s.sol`
 - 合约源码：`src/ExtensionLpFactory.sol`
+- V2 合约源码：`src/ExtensionLpFactoryV2.sol`
 - Extension 合约：`src/ExtensionLp.sol`
 - Foundry 配置：`foundry.toml`
